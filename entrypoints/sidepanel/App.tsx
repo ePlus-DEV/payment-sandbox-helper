@@ -810,9 +810,16 @@ function CardRow({ group }: { group: CardGroup }) {
             <div className="text-[10px] text-white/50 uppercase tracking-widest mb-0.5">
               {m("cardholder")}
             </div>
-            <div className="text-xs font-semibold text-white/90 uppercase tracking-wide truncate">
-              {card.name}
-            </div>
+            <button
+              onClick={() => copy(card.name, "name")}
+              className={`text-xs font-semibold uppercase tracking-wide truncate border-0 bg-transparent cursor-pointer p-0 transition-colors ${
+                copied === "name"
+                  ? "text-green-300"
+                  : "text-white/90 hover:text-white"
+              }`}
+            >
+              {copied === "name" ? m("copiedCheck") : card.name}
+            </button>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-white/50 font-mono">
@@ -1104,9 +1111,16 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
             <div className="text-[10px] text-white/50 uppercase tracking-widest mb-0.5">
               {m("cardholder")}
             </div>
-            <div className="text-xs font-semibold text-white/90 uppercase tracking-wide">
-              {card_data.name}
-            </div>
+            <button
+              onClick={() => copy(card_data.name, "name")}
+              className={`text-xs font-semibold uppercase tracking-wide border-0 bg-transparent cursor-pointer p-0 transition-colors ${
+                copied === "name"
+                  ? "text-green-300"
+                  : "text-white/90 hover:text-white"
+              }`}
+            >
+              {copied === "name" ? m("copiedCheck") : card_data.name}
+            </button>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-white/50 font-mono">
