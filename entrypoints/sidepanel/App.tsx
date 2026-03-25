@@ -21,6 +21,14 @@ import {
   faCcJcb,
   faCcDinersClub,
 } from "@fortawesome/free-brands-svg-icons";
+import {
+  type Lang,
+  type T,
+  LANG_KEY,
+  loadLang,
+  translations,
+  SUPPORTED_LANGS,
+} from "../../utils/i18n";
 
 // ── Countries ──────────────────────────────────────────────────
 const COUNTRIES = [
@@ -74,6 +82,9 @@ const CountryCtx = createContext<{
   setBgPaypal: (v: string) => void;
   bgStripe: string;
   setBgStripe: (v: string) => void;
+  lang: Lang;
+  setLang: (l: Lang) => void;
+  t: T;
 }>({
   country: "US",
   setCountry: () => {},
@@ -81,6 +92,9 @@ const CountryCtx = createContext<{
   setBgPaypal: () => {},
   bgStripe: "",
   setBgStripe: () => {},
+  lang: "en",
+  setLang: () => {},
+  t: translations.en,
 });
 
 // ── Luhn algorithm ─────────────────────────────────────────────
@@ -435,8 +449,17 @@ function copyText(text: string) {
 
 // ── Settings page ──────────────────────────────────────────────
 function SettingsPage() {
-  const { country, setCountry, bgPaypal, setBgPaypal, bgStripe, setBgStripe } =
-    useContext(CountryCtx);
+  const {
+    country,
+    setCountry,
+    bgPaypal,
+    setBgPaypal,
+    bgStripe,
+    setBgStripe,
+    lang,
+    setLang,
+    t,
+  } = useContext(CountryCtx);
 
   const PRESETS = [
     { label: "Blue", value: "/img/background/blue.png" },
@@ -487,7 +510,7 @@ function SettingsPage() {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-xs text-slate-400">
-            No background
+            {t.noBackground}
           </div>
         )}
       </div>
@@ -521,7 +544,7 @@ function SettingsPage() {
         ))}
       </div>
       <label className="w-full text-center text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 cursor-pointer transition-colors block">
-        Custom upload...
+        {t.customUpload}
         <input
           type="file"
           accept="image/*"
@@ -534,15 +557,13 @@ function SettingsPage() {
 
   return (
     <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-      <h2 className="text-sm font-bold text-slate-700">Settings</h2>
+      <h2 className="text-sm font-bold text-slate-700">{t.settings}</h2>
 
       <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
         <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-          Country / Region
+          {t.country}
         </label>
-        <p className="text-xs text-slate-400 mb-3">
-          Dùng chung cho tất cả card khi Auto Fill vào billing address.
-        </p>
+        <p className="text-xs text-slate-400 mb-3">{t.countryDesc}</p>
         <select
           value={country}
           onChange={(e) => {
@@ -558,7 +579,7 @@ function SettingsPage() {
           ))}
         </select>
         <div className="mt-3 px-3 py-2 bg-slate-50 rounded-lg">
-          <span className="text-xs text-slate-500">Selected: </span>
+          <span className="text-xs text-slate-500">{t.selected}: </span>
           <span className="text-xs font-mono font-bold text-slate-700">
             {country}
           </span>
@@ -568,12 +589,33 @@ function SettingsPage() {
         </div>
       </div>
 
+      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
+          {t.language}
+        </label>
+        <div className="flex gap-2">
+          {SUPPORTED_LANGS.map((l) => (
+            <button
+              key={l.code}
+              onClick={() => setLang(l.code)}
+              className={`flex-1 py-2 rounded-lg text-sm font-semibold border transition-colors cursor-pointer ${
+                lang === l.code
+                  ? "bg-[#003087] text-white border-[#003087]"
+                  : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              {l.flag} {l.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col gap-4">
         <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide">
-          Card Background
+          {t.cardBackground}
         </label>
         <BgPicker
-          label="PayPal Cards"
+          label={t.paypalCards}
           value={bgPaypal}
           setter={setBgPaypal}
           storageKey={BG_PAYPAL_KEY}
@@ -581,7 +623,7 @@ function SettingsPage() {
         />
         <div className="border-t border-slate-100" />
         <BgPicker
-          label="Stripe Cards"
+          label={t.stripeCards}
           value={bgStripe}
           setter={setBgStripe}
           storageKey={BG_STRIPE_KEY}
@@ -617,14 +659,14 @@ const CARD_GRADIENT: Record<string, string> = {
 type CardGroup = (typeof CARD_GROUPS)[0];
 
 function CardRow({ group }: { group: CardGroup }) {
-  const { country, bgPaypal } = useContext(CountryCtx);
+  const { country, bgPaypal, t } = useContext(CountryCtx);
 
   const generate = useCallback(
     () => ({
       number: generateCardNumber(group.type),
       expiry: randomExpiry(),
       cvv: randomCvv(group.amex),
-      name: "Test User",
+      name: t.testUser,
     }),
     [group],
   );
@@ -659,9 +701,9 @@ function CardRow({ group }: { group: CardGroup }) {
         action: "fillCard",
         card: { ...card, label: group.label, type: group.type, country },
       });
-      setToast("Đã điền ✓");
+      setToast(t.filled);
     } catch {
-      setToast("Không tìm thấy form");
+      setToast(t.noForm);
     } finally {
       setFilling(false);
       setTimeout(() => setToast(""), 2000);
@@ -689,7 +731,7 @@ function CardRow({ group }: { group: CardGroup }) {
         <div className="flex justify-end gap-1.5 mb-3">
           <button
             onClick={() => handleGenerate()}
-            title="Generate new card"
+            {...{ title: t.generateNew }}
             className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/15 hover:bg-white/25 text-white transition-colors cursor-pointer border-0"
           >
             <FontAwesomeIcon
@@ -703,7 +745,7 @@ function CardRow({ group }: { group: CardGroup }) {
             disabled={filling}
             className="text-xs font-bold px-3 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors disabled:opacity-50 cursor-pointer border-0"
           >
-            {filling ? "..." : "Auto Fill"}
+            {filling ? "..." : t.autoFill}
           </button>
         </div>
 
@@ -717,7 +759,7 @@ function CardRow({ group }: { group: CardGroup }) {
           }`}
         >
           {copied === "num"
-            ? "✓ Copied!"
+            ? t.copiedCheck
             : card.number.replace(/(.{4})/g, "$1 ").trim()}
         </button>
 
@@ -725,7 +767,7 @@ function CardRow({ group }: { group: CardGroup }) {
         <div className="flex items-end justify-between">
           <div>
             <div className="text-[10px] text-white/50 uppercase tracking-widest mb-0.5">
-              Cardholder
+              {t.cardholder}
             </div>
             <div className="text-xs font-semibold text-white/90 uppercase tracking-wide">
               {card.name}
@@ -754,7 +796,7 @@ function CardRow({ group }: { group: CardGroup }) {
       <div className="bg-gray-100 px-5 py-3 flex items-center justify-between">
         <div>
           <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest mb-1">
-            Expiry date
+            {t.expiryDate}
           </div>
           <button
             onClick={() => copy(card.expiry, "exp")}
@@ -764,12 +806,12 @@ function CardRow({ group }: { group: CardGroup }) {
                 : "text-gray-800 hover:text-blue-600"
             }`}
           >
-            {copied === "exp" ? "Copied!" : card.expiry}
+            {copied === "exp" ? t.copied : card.expiry}
           </button>
         </div>
         <div className="text-right">
           <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest mb-1">
-            CVV
+            {t.cvv}
           </div>
           <button
             onClick={() => copy(card.cvv, "cvv")}
@@ -779,7 +821,7 @@ function CardRow({ group }: { group: CardGroup }) {
                 : "text-gray-800 hover:text-blue-600"
             }`}
           >
-            {copied === "cvv" ? "Copied!" : card.cvv}
+            {copied === "cvv" ? t.copied : card.cvv}
           </button>
         </div>
       </div>
@@ -795,7 +837,7 @@ function CardRow({ group }: { group: CardGroup }) {
 
 // ── ErrorTriggerRow ────────────────────────────────────────────
 function ErrorTriggerRow({ item }: { item: (typeof ERROR_TRIGGERS)[0] }) {
-  const { country } = useContext(CountryCtx);
+  const { country, t } = useContext(CountryCtx);
 
   const genTestCard = useCallback(
     () => ({
@@ -839,9 +881,9 @@ function ErrorTriggerRow({ item }: { item: (typeof ERROR_TRIGGERS)[0] }) {
         action: "fillCard",
         card: { ...testCard, country },
       });
-      setToast("Đã điền ✓");
+      setToast(t.filled);
     } catch {
-      setToast("Không tìm thấy form");
+      setToast(t.noForm);
     } finally {
       setFilling(false);
       setTimeout(() => setToast(""), 2000);
@@ -859,7 +901,7 @@ function ErrorTriggerRow({ item }: { item: (typeof ERROR_TRIGGERS)[0] }) {
         </span>
         <button
           onClick={() => handleGenerateErr()}
-          title="Generate new card"
+          {...{ title: t.generateNew }}
           className="text-xs px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer border-0 shrink-0"
         >
           <FontAwesomeIcon
@@ -872,7 +914,7 @@ function ErrorTriggerRow({ item }: { item: (typeof ERROR_TRIGGERS)[0] }) {
           disabled={filling}
           className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors disabled:opacity-50 cursor-pointer shrink-0"
         >
-          {filling ? "..." : "Fill"}
+          {filling ? "..." : t.fill}
         </button>
       </div>
 
@@ -884,7 +926,7 @@ function ErrorTriggerRow({ item }: { item: (typeof ERROR_TRIGGERS)[0] }) {
             : "bg-red-50 hover:bg-red-100 text-red-700"
         }`}
       >
-        {copied ? "Copied!" : item.trigger}
+        {copied ? t.copied : item.trigger}
       </button>
 
       <p className="text-[10px] text-slate-400 leading-relaxed">{item.desc}</p>
@@ -900,12 +942,12 @@ function ErrorTriggerRow({ item }: { item: (typeof ERROR_TRIGGERS)[0] }) {
 
 // ── StripeCardRow ──────────────────────────────────────────────
 function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
-  const { country, bgStripe } = useContext(CountryCtx);
+  const { country, bgStripe, t } = useContext(CountryCtx);
   const [card_data] = useState(() => ({
     number: card.number,
     expiry: randomExpiry(),
     cvv: randomCvv(card.cvvLen === 4),
-    name: "Test User",
+    name: t.testUser,
   }));
   const [copied, setCopied] = useState("");
   const [filling, setFilling] = useState(false);
@@ -929,9 +971,9 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
         action: "fillCard",
         card: { ...card_data, label: card.label, type: "stripe", country },
       });
-      setToast("Đã điền ✓");
+      setToast(t.filled);
     } catch {
-      setToast("Không tìm thấy form");
+      setToast(t.noForm);
     } finally {
       setFilling(false);
       setTimeout(() => setToast(""), 2000);
@@ -997,7 +1039,7 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
             disabled={filling}
             className="text-xs font-bold px-3 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors disabled:opacity-50 cursor-pointer border-0"
           >
-            {filling ? "..." : "Auto Fill"}
+            {filling ? "..." : t.autoFill}
           </button>
         </div>
 
@@ -1011,7 +1053,7 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
           }`}
         >
           {copied === "num"
-            ? "✓ Copied!"
+            ? t.copiedCheck
             : card.number.replace(/(.{4})/g, "$1 ").trim()}
         </button>
 
@@ -1019,7 +1061,7 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
         <div className="flex items-end justify-between">
           <div>
             <div className="text-[10px] text-white/50 uppercase tracking-widest mb-0.5">
-              Cardholder
+              {t.cardholder}
             </div>
             <div className="text-xs font-semibold text-white/90 uppercase tracking-wide">
               {card_data.name}
@@ -1048,7 +1090,7 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
       <div className="bg-gray-100 px-5 py-3 flex items-center justify-between">
         <div>
           <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest mb-1">
-            Expiry date
+            {t.expiryDate}
           </div>
           <button
             onClick={() => copy(card_data.expiry, "exp")}
@@ -1058,7 +1100,7 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
                 : "text-gray-800 hover:text-blue-600"
             }`}
           >
-            {copied === "exp" ? "Copied!" : card_data.expiry}
+            {copied === "exp" ? t.copied : card_data.expiry}
           </button>
         </div>
         <div className="text-right">
@@ -1073,7 +1115,7 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
                 : "text-gray-800 hover:text-blue-600"
             }`}
           >
-            {copied === "cvv" ? "Copied!" : card_data.cvv}
+            {copied === "cvv" ? t.copied : card_data.cvv}
           </button>
         </div>
       </div>
@@ -1138,6 +1180,13 @@ function App() {
   const [country, setCountry] = useState<string>(() => loadCountry());
   const [bgPaypal, setBgPaypal] = useState<string>(() => loadBg(BG_PAYPAL_KEY));
   const [bgStripe, setBgStripe] = useState<string>(() => loadBg(BG_STRIPE_KEY));
+  const [lang, setLangState] = useState<Lang>(() => loadLang());
+  const t = translations[lang];
+
+  const setLang = (l: Lang) => {
+    setLangState(l);
+    localStorage.setItem(LANG_KEY, l);
+  };
 
   const errorTestCard = useMemo(
     () => ({
@@ -1162,6 +1211,9 @@ function App() {
         setBgPaypal,
         bgStripe,
         setBgStripe,
+        lang,
+        setLang,
+        t,
       }}
     >
       <div className="min-h-screen bg-slate-100 flex flex-col">
@@ -1174,10 +1226,10 @@ function App() {
                 className="text-white text-sm font-semibold flex items-center gap-1.5 cursor-pointer border-0 bg-transparent hover:text-blue-200 transition-colors shrink-0"
               >
                 <FontAwesomeIcon icon={faArrowLeft} />
-                Back
+                {t.back}
               </button>
               <span className="text-white font-bold text-sm flex-1">
-                Settings
+                {t.settings}
               </span>
             </>
           ) : (
@@ -1189,11 +1241,9 @@ function App() {
               />
               <div className="flex-1">
                 <h1 className="text-white font-bold text-sm leading-tight">
-                  Sandbox Pay
+                  {t.appName}
                 </h1>
-                <p className="text-blue-300 text-xs">
-                  Click để copy · Auto Fill để điền form
-                </p>
+                <p className="text-blue-300 text-xs">{t.appDesc}</p>
               </div>
               <button
                 onClick={() => setPage("settings")}
@@ -1272,9 +1322,9 @@ function App() {
                     <>
                       <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 mb-2">
                         <p className="mb-2">
-                          Điền trigger vào field{" "}
-                          <span className="font-bold">Name on Card</span>. Dùng
-                          thẻ Visa:
+                          {t.errorNote}{" "}
+                          <span className="font-bold">{t.errorNoteField}</span>.{" "}
+                          {t.errorNoteDesc}
                         </p>
                         <div className="flex flex-col gap-1">
                           <button
@@ -1288,7 +1338,9 @@ function App() {
                               onClick={() => copyText(errorTestCard.expiry)}
                               className="flex-1 flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 cursor-pointer border-0 text-amber-900 transition-colors"
                             >
-                              <span className="font-bold">Exp</span>
+                              <span className="font-bold">
+                                {t.expiryDate.substring(0, 3)}
+                              </span>
                               <span className="font-mono">
                                 {errorTestCard.expiry}
                               </span>
@@ -1297,7 +1349,7 @@ function App() {
                               onClick={() => copyText(errorTestCard.cvv)}
                               className="flex-1 flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 cursor-pointer border-0 text-amber-900 transition-colors"
                             >
-                              <span className="font-bold">CVV</span>
+                              <span className="font-bold">{t.cvv}</span>
                               <span className="font-mono">
                                 {errorTestCard.cvv}
                               </span>
