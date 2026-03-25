@@ -24,7 +24,7 @@ export default defineContentScript({
 
     browser.runtime.onMessage.addListener((message) => {
       if (message.action === "fillCard") {
-        fillCardForm(message.card);
+        void fillCardForm(message.card);
       }
       if (message.action === "fillField") {
         const el = lastFocusedInput;
@@ -44,7 +44,7 @@ interface CardData {
 
 function setNativeValue(el: HTMLInputElement, value: string) {
   const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-    window.HTMLInputElement.prototype,
+    globalThis.HTMLInputElement.prototype,
     "value",
   )?.set;
   nativeInputValueSetter?.call(el, value);
@@ -54,9 +54,13 @@ function setNativeValue(el: HTMLInputElement, value: string) {
 
 function fillInput(el: HTMLInputElement | null, value: string) {
   if (!el) return;
-  el.focus();
   setNativeValue(el, value);
-  el.blur();
+}
+
+async function fillInputAsync(el: HTMLInputElement | null, value: string) {
+  if (!el) return;
+  setNativeValue(el, value);
+  await new Promise((r) => setTimeout(r, 50));
 }
 
 function findInput(selectors: string[]): HTMLInputElement | null {
@@ -67,7 +71,7 @@ function findInput(selectors: string[]): HTMLInputElement | null {
   return null;
 }
 
-function fillCardForm(card: CardData) {
+async function fillCardForm(card: CardData) {
   // Card number
   const cardNumberEl = findInput([
     'input[name*="card" i][name*="number" i]',
@@ -81,9 +85,9 @@ function fillCardForm(card: CardData) {
     'input[name="ccnumber"]',
     'input[name="cc-number"]',
   ]);
-  fillInput(cardNumberEl, card.number);
+  await fillInputAsync(cardNumberEl, card.number);
 
-  // Expiry - try combined first
+  // Expiry
   const expiryEl = findInput([
     'input[name*="expir" i]',
     'input[id*="expir" i]',
@@ -97,9 +101,8 @@ function fillCardForm(card: CardData) {
   ]);
 
   if (expiryEl) {
-    fillInput(expiryEl, card.expiry);
+    await fillInputAsync(expiryEl, card.expiry);
   } else {
-    // Try separate month/year fields
     const [month, year] = card.expiry.split("/");
     const monthEl = findInput([
       'input[name*="exp" i][name*="month" i]',
@@ -112,8 +115,8 @@ function fillCardForm(card: CardData) {
       'input[id*="exp" i][id*="year" i]',
       'input[autocomplete="cc-exp-year"]',
     ]);
-    fillInput(monthEl, month);
-    fillInput(yearEl, year.length === 2 ? `20${year}` : year);
+    await fillInputAsync(monthEl, month);
+    await fillInputAsync(yearEl, year.length === 2 ? `20${year}` : year);
   }
 
   // CVV
@@ -129,7 +132,7 @@ function fillCardForm(card: CardData) {
     'input[name="securityCode"]',
     'input[name="security_code"]',
   ]);
-  fillInput(cvvEl, card.cvv);
+  await fillInputAsync(cvvEl, card.cvv);
 
   // Cardholder name
   const nameEl = findInput([
@@ -142,7 +145,7 @@ function fillCardForm(card: CardData) {
     'input[name="ccname"]',
     'input[name="cc-name"]',
   ]);
-  fillInput(nameEl, card.name);
+  await fillInputAsync(nameEl, card.name);
 
   // Country
   if (card.country) {
@@ -152,9 +155,8 @@ function fillCardForm(card: CardData) {
       'input[autocomplete="country"]',
       'input[autocomplete="billing country"]',
     ]);
-    fillInput(countryEl, card.country);
+    await fillInputAsync(countryEl, card.country);
 
-    // Select dropdown
     const countrySelect = document.querySelector<HTMLSelectElement>(
       'select[name*="country" i], select[id*="country" i], select[autocomplete="country"]',
     );
@@ -166,7 +168,7 @@ function fillCardForm(card: CardData) {
       );
       if (opt) {
         countrySelect.value = opt.value;
-        countrySelect.dispatchEvent(new Event("change", { bubbles: true }));
+        countrySelect.dispatchEvent(new Event("change", { bubbles: false }));
       }
     }
   }

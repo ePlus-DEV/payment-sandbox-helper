@@ -1189,7 +1189,7 @@ function App() {
               />
               <div className="flex-1">
                 <h1 className="text-white font-bold text-sm leading-tight">
-                  Sandbox Card Filler
+                  Sandbox Pay
                 </h1>
                 <p className="text-blue-300 text-xs">
                   Click để copy · Auto Fill để điền form

@@ -1,6 +1,6 @@
 {
-  "name": "payment-sandbox-helper",
-  "description": "manifest.json description",
+  "name": "sandbox-pay",
+  "description": "Fill PayPal & Stripe test cards instantly for sandbox testing",
   "private": true,
   "version": "1.0.0",
   "type": "module",

@@ -3190,27 +3190,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"payment-sandbox-helper@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "payment-sandbox-helper@workspace:."
-  dependencies:
-    "@fortawesome/fontawesome-svg-core": "npm:^7.2.0"
-    "@fortawesome/free-brands-svg-icons": "npm:^7.2.0"
-    "@fortawesome/free-solid-svg-icons": "npm:^7.2.0"
-    "@fortawesome/react-fontawesome": "npm:^3.3.0"
-    "@tailwindcss/vite": "npm:^4.2.2"
-    "@types/react": "npm:^19.2.14"
-    "@types/react-dom": "npm:^19.2.3"
-    "@wxt-dev/module-react": "npm:^1.1.5"
-    react: "npm:^19.2.4"
-    react-dom: "npm:^19.2.4"
-    tailwindcss: "npm:^4.2.2"
-    typescript: "npm:^5.9.3"
-    vite: "npm:^8.0.2"
-    wxt: "npm:^0.20.20"
-  languageName: unknown
-  linkType: soft
-
 "perfect-debounce@npm:^2.0.0, perfect-debounce@npm:^2.1.0":
   version: 2.1.0
   resolution: "perfect-debounce@npm:2.1.0"
@@ -3610,6 +3589,27 @@ __metadata:
   checksum: 10c0/7e3c8b2e88a1841c9671094bbaeebd94448111dd90a81a1f606f3f67708a6ec57763b3b47f06da09fc6054193e0e6709e77325415dc8422b04497a8070fa02d4
   languageName: node
   linkType: hard
+
+"sandbox-pay@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "sandbox-pay@workspace:."
+  dependencies:
+    "@fortawesome/fontawesome-svg-core": "npm:^7.2.0"
+    "@fortawesome/free-brands-svg-icons": "npm:^7.2.0"
+    "@fortawesome/free-solid-svg-icons": "npm:^7.2.0"
+    "@fortawesome/react-fontawesome": "npm:^3.3.0"
+    "@tailwindcss/vite": "npm:^4.2.2"
+    "@types/react": "npm:^19.2.14"
+    "@types/react-dom": "npm:^19.2.3"
+    "@wxt-dev/module-react": "npm:^1.1.5"
+    react: "npm:^19.2.4"
+    react-dom: "npm:^19.2.4"
+    tailwindcss: "npm:^4.2.2"
+    typescript: "npm:^5.9.3"
+    vite: "npm:^8.0.2"
+    wxt: "npm:^0.20.20"
+  languageName: unknown
+  linkType: soft
 
 "sax@npm:>=0.6.0":
   version: 1.6.0

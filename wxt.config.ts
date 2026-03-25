@@ -7,9 +7,9 @@ export default defineConfig({
     plugins: [tailwindcss()],
   }),
   manifest: {
-    name: "PayPal Sandbox Card Filler",
+    name: "Sandbox Pay",
     description:
-      "Tự động điền thông tin thẻ sandbox PayPal vào form thanh toán",
+      "Fill PayPal & Stripe test cards instantly for sandbox testing",
     version: "1.0.0",
     permissions: [
       "activeTab",
