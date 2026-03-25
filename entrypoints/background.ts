@@ -1,3 +1,6 @@
 export default defineBackground(() => {
-  console.log('Hello background!', { id: browser.runtime.id });
+  // Mở sidebar khi click icon extension
+  browser.action.onClicked.addListener((tab) => {
+    browser.sidePanel.open({ windowId: tab.windowId });
+  });
 });

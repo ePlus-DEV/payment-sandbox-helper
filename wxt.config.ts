@@ -7,6 +7,12 @@ export default defineConfig({
     description:
       "Tự động điền thông tin thẻ sandbox PayPal vào form thanh toán",
     version: "1.0.0",
-    permissions: ["activeTab", "scripting"],
+    permissions: ["activeTab", "scripting", "sidePanel"],
+    side_panel: {
+      default_path: "sidepanel.html",
+    },
+    action: {
+      // không set default_popup để onClicked có thể trigger
+    },
   },
 });

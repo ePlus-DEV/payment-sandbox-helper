@@ -156,17 +156,6 @@ const SANDBOX_CARDS = [
   },
 ];
 
-const CARD_ICONS: Record<string, string> = {
-  visa: "💳",
-  mastercard: "💳",
-  amex: "💳",
-  discover: "💳",
-  diners: "💳",
-  maestro: "💳",
-  jcb: "💳",
-  cup: "💳",
-};
-
 function App() {
   const [status, setStatus] = useState<string>("");
   const [copied, setCopied] = useState<string>("");
@@ -177,7 +166,6 @@ function App() {
       currentWindow: true,
     });
     if (!tab?.id) return;
-
     try {
       await browser.tabs.sendMessage(tab.id, { action: "fillCard", card });
       setStatus(`Đã điền card ${card.label}`);
@@ -208,9 +196,7 @@ function App() {
         {SANDBOX_CARDS.map((card) => (
           <div key={card.number} className="card-item">
             <div className="card-header">
-              <span className="card-label">
-                {CARD_ICONS[card.type]} {card.label}
-              </span>
+              <span className="card-label">{card.label}</span>
               <button className="fill-btn" onClick={() => fillCard(card)}>
                 Auto Fill
               </button>
