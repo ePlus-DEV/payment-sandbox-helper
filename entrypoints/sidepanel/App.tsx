@@ -714,7 +714,6 @@ function CardRow({ group }: { group: CardGroup }) {
 
   const [card, setCard] = useState(() => generate());
   const [spinning, setSpinning] = useState(false);
-  const [editingName, setEditingName] = useState(false);
   const [copied, setCopied] = useState("");
   const [filling, setFilling] = useState(false);
   const [toast, setToast] = useState("");
@@ -808,39 +807,12 @@ function CardRow({ group }: { group: CardGroup }) {
         {/* Bottom: name + brand icon */}
         <div className="flex items-end justify-between">
           <div className="flex-1 min-w-0 mr-2">
-            <div className="text-[10px] text-white/50 uppercase tracking-widest mb-0.5 flex items-center gap-1.5">
+            <div className="text-[10px] text-white/50 uppercase tracking-widest mb-0.5">
               {m("cardholder")}
-              <button
-                onClick={() => setEditingName((v) => !v)}
-                className="text-white/40 hover:text-white/80 border-0 bg-transparent cursor-pointer p-0 text-[10px]"
-                title={m("editName")}
-              >
-                ✎
-              </button>
-              <button
-                onClick={() => copy(card.name, "name")}
-                className="text-white/40 hover:text-white/80 border-0 bg-transparent cursor-pointer p-0 text-[10px]"
-              >
-                {copied === "name" ? "✓" : "⎘"}
-              </button>
             </div>
-            {editingName ? (
-              <input
-                autoFocus
-                value={card.name}
-                onChange={(e) =>
-                  setCard((c) => ({ ...c, name: e.target.value }))
-                }
-                onBlur={() => setEditingName(false)}
-                onKeyDown={(e) => e.key === "Enter" && setEditingName(false)}
-                className="text-xs font-semibold bg-white/10 text-white border-0 border-b border-white/40 outline-none w-full uppercase tracking-wide px-0 py-0.5"
-                placeholder={m("cardholderPlaceholder")}
-              />
-            ) : (
-              <div className="text-xs font-semibold text-white/90 uppercase tracking-wide truncate">
-                {card.name}
-              </div>
-            )}
+            <div className="text-xs font-semibold text-white/90 uppercase tracking-wide truncate">
+              {card.name}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-white/50 font-mono">
