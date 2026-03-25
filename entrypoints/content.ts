@@ -7,9 +7,27 @@ export default defineContentScript({
     "*://127.0.0.1/*",
   ],
   main() {
+    let lastFocusedInput: HTMLInputElement | null = null;
+
+    // Track input đang được focus/right-click
+    document.addEventListener("focusin", (e) => {
+      if (e.target instanceof HTMLInputElement) {
+        lastFocusedInput = e.target;
+      }
+    });
+    document.addEventListener("contextmenu", (e) => {
+      if (e.target instanceof HTMLInputElement) {
+        lastFocusedInput = e.target;
+      }
+    });
+
     browser.runtime.onMessage.addListener((message) => {
       if (message.action === "fillCard") {
         fillCardForm(message.card);
+      }
+      if (message.action === "fillField") {
+        const el = lastFocusedInput;
+        if (el) fillInput(el, message.value);
       }
     });
   },

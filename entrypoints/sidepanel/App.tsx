@@ -180,6 +180,198 @@ const ERROR_TRIGGERS = [
   },
 ];
 
+// ── Stripe test cards ──────────────────────────────────────────
+const STRIPE_CARDS = [
+  // Success cards
+  {
+    label: "Visa",
+    number: "4242424242424242",
+    cvvLen: 3,
+    desc: "Succeeds",
+    category: "success",
+  },
+  {
+    label: "Visa (debit)",
+    number: "4000056655665556",
+    cvvLen: 3,
+    desc: "Succeeds",
+    category: "success",
+  },
+  {
+    label: "Mastercard",
+    number: "5555555555554444",
+    cvvLen: 3,
+    desc: "Succeeds",
+    category: "success",
+  },
+  {
+    label: "Mastercard (2-series)",
+    number: "2223003122003222",
+    cvvLen: 3,
+    desc: "Succeeds",
+    category: "success",
+  },
+  {
+    label: "Mastercard (debit)",
+    number: "5200828282828210",
+    cvvLen: 3,
+    desc: "Succeeds",
+    category: "success",
+  },
+  {
+    label: "Mastercard (prepaid)",
+    number: "5105105105105100",
+    cvvLen: 3,
+    desc: "Succeeds",
+    category: "success",
+  },
+  {
+    label: "American Express",
+    number: "378282246310005",
+    cvvLen: 4,
+    desc: "Succeeds",
+    category: "success",
+  },
+  {
+    label: "American Express",
+    number: "371449635398431",
+    cvvLen: 4,
+    desc: "Succeeds",
+    category: "success",
+  },
+  {
+    label: "Discover",
+    number: "6011111111111117",
+    cvvLen: 3,
+    desc: "Succeeds",
+    category: "success",
+  },
+  {
+    label: "Discover",
+    number: "6011000990139424",
+    cvvLen: 3,
+    desc: "Succeeds",
+    category: "success",
+  },
+  {
+    label: "Diners Club",
+    number: "3056930009020004",
+    cvvLen: 3,
+    desc: "Succeeds",
+    category: "success",
+  },
+  {
+    label: "Diners Club (14-digit)",
+    number: "36227206271667",
+    cvvLen: 3,
+    desc: "Succeeds",
+    category: "success",
+  },
+  {
+    label: "JCB",
+    number: "3566002020360505",
+    cvvLen: 3,
+    desc: "Succeeds",
+    category: "success",
+  },
+  {
+    label: "UnionPay",
+    number: "6200000000000005",
+    cvvLen: 3,
+    desc: "Succeeds",
+    category: "success",
+  },
+  // Decline cards
+  {
+    label: "Generic decline",
+    number: "4000000000000002",
+    cvvLen: 3,
+    desc: "card_declined",
+    category: "decline",
+  },
+  {
+    label: "Insufficient funds",
+    number: "4000000000009995",
+    cvvLen: 3,
+    desc: "insufficient_funds",
+    category: "decline",
+  },
+  {
+    label: "Lost card",
+    number: "4000000000009987",
+    cvvLen: 3,
+    desc: "lost_card",
+    category: "decline",
+  },
+  {
+    label: "Stolen card",
+    number: "4000000000009979",
+    cvvLen: 3,
+    desc: "stolen_card",
+    category: "decline",
+  },
+  {
+    label: "Expired card",
+    number: "4000000000000069",
+    cvvLen: 3,
+    desc: "expired_card",
+    category: "decline",
+  },
+  {
+    label: "Incorrect CVC",
+    number: "4000000000000127",
+    cvvLen: 3,
+    desc: "incorrect_cvc",
+    category: "decline",
+  },
+  {
+    label: "Processing error",
+    number: "4000000000000119",
+    cvvLen: 3,
+    desc: "processing_error",
+    category: "decline",
+  },
+  {
+    label: "Fraudulent",
+    number: "4100000000000019",
+    cvvLen: 3,
+    desc: "fraudulent (Radar)",
+    category: "decline",
+  },
+  // 3DS
+  {
+    label: "3DS - Always auth",
+    number: "4000002760003184",
+    cvvLen: 3,
+    desc: "Requires 3DS auth",
+    category: "3ds",
+  },
+  {
+    label: "3DS - Auth or decline",
+    number: "4000008400001629",
+    cvvLen: 3,
+    desc: "3DS then declined",
+    category: "3ds",
+  },
+  {
+    label: "3DS - Frictionless",
+    number: "4000000000003220",
+    cvvLen: 3,
+    desc: "Frictionless flow",
+    category: "3ds",
+  },
+];
+
+const STRIPE_CATEGORIES = ["All", "Success", "Decline", "3DS"] as const;
+type StripeCategory = (typeof STRIPE_CATEGORIES)[number];
+
+const STRIPE_CAT_FILTER: Record<StripeCategory, string> = {
+  All: "",
+  Success: "success",
+  Decline: "decline",
+  "3DS": "3ds",
+};
+
 const TABS = ["All", "Visa", "Mastercard", "Amex", "Others", "Errors"] as const;
 type Tab = (typeof TABS)[number];
 
@@ -476,8 +668,178 @@ function ErrorTriggerRow({ item }: { item: (typeof ERROR_TRIGGERS)[0] }) {
   );
 }
 
+// ── StripeCardRow ──────────────────────────────────────────────
+function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
+  const { country } = useContext(CountryCtx);
+  const [card_data] = useState(() => ({
+    number: card.number,
+    expiry: randomExpiry(),
+    cvv: randomCvv(card.cvvLen === 4),
+    name: "Test User",
+  }));
+  const [copied, setCopied] = useState("");
+  const [filling, setFilling] = useState(false);
+  const [toast, setToast] = useState("");
+
+  const copy = (text: string, key: string) => {
+    copyText(text);
+    setCopied(key);
+    setTimeout(() => setCopied(""), 1500);
+  };
+
+  const fillCard = async () => {
+    setFilling(true);
+    try {
+      const [tab] = await browser.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+      if (!tab?.id) throw new Error("no tab");
+      await browser.tabs.sendMessage(tab.id, {
+        action: "fillCard",
+        card: { ...card_data, label: card.label, type: "stripe", country },
+      });
+      setToast("Đã điền ✓");
+    } catch {
+      setToast("Không tìm thấy form");
+    } finally {
+      setFilling(false);
+      setTimeout(() => setToast(""), 2000);
+    }
+  };
+
+  const isDecline = card.category === "decline";
+  const is3ds = card.category === "3ds";
+
+  return (
+    <div
+      className={`bg-white rounded-xl border p-3 shadow-sm ${isDecline ? "border-red-100" : is3ds ? "border-yellow-100" : "border-slate-200"}`}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <span className="text-xs font-semibold text-slate-600 truncate">
+            {card.label}
+          </span>
+          <span
+            className={`text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0 ${
+              isDecline
+                ? "bg-red-100 text-red-600"
+                : is3ds
+                  ? "bg-yellow-100 text-yellow-700"
+                  : "bg-green-100 text-green-700"
+            }`}
+          >
+            {card.desc}
+          </span>
+        </div>
+        <button
+          onClick={fillCard}
+          disabled={filling}
+          className={`text-xs font-semibold px-3 py-1 rounded-lg text-white transition-colors disabled:opacity-50 cursor-pointer shrink-0 ml-2 ${
+            isDecline
+              ? "bg-red-500 hover:bg-red-600"
+              : "bg-[#635bff] hover:bg-[#4f46e5]"
+          }`}
+        >
+          {filling ? "..." : "Auto Fill"}
+        </button>
+      </div>
+
+      <button
+        onClick={() => copy(card.number, "num")}
+        className={`w-full text-left font-mono text-sm tracking-widest px-2 py-1.5 rounded-lg transition-colors mb-1 cursor-pointer border-0 ${
+          copied === "num"
+            ? "bg-green-100 text-green-700"
+            : "bg-slate-50 hover:bg-blue-50 text-slate-700"
+        }`}
+      >
+        {copied === "num" ? "Copied!" : card.number}
+      </button>
+
+      <div className="flex gap-2">
+        <button
+          onClick={() => copy(card_data.expiry, "exp")}
+          className={`flex-1 flex items-center gap-1.5 px-2 py-1 rounded-lg cursor-pointer transition-colors border-0 ${
+            copied === "exp"
+              ? "bg-green-100 text-green-700"
+              : "bg-slate-50 hover:bg-blue-50"
+          }`}
+        >
+          <span className="text-[10px] font-bold text-slate-400 uppercase">
+            Exp
+          </span>
+          <span className="font-mono text-xs text-slate-600">
+            {copied === "exp" ? "Copied!" : card_data.expiry}
+          </span>
+        </button>
+        <button
+          onClick={() => copy(card_data.cvv, "cvv")}
+          className={`flex-1 flex items-center gap-1.5 px-2 py-1 rounded-lg cursor-pointer transition-colors border-0 ${
+            copied === "cvv"
+              ? "bg-green-100 text-green-700"
+              : "bg-slate-50 hover:bg-blue-50"
+          }`}
+        >
+          <span className="text-[10px] font-bold text-slate-400 uppercase">
+            CVC
+          </span>
+          <span className="font-mono text-xs text-slate-600">
+            {copied === "cvv" ? "Copied!" : card_data.cvv}
+          </span>
+        </button>
+      </div>
+
+      {toast && (
+        <div className="mt-2 text-center text-xs font-medium text-green-700 bg-green-50 rounded-lg py-1">
+          {toast}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StripePage() {
+  const [activeCategory, setActiveCategory] = useState<StripeCategory>("All");
+
+  const filtered =
+    activeCategory === "All"
+      ? STRIPE_CARDS
+      : STRIPE_CARDS.filter(
+          (c) => c.category === STRIPE_CAT_FILTER[activeCategory],
+        );
+
+  return (
+    <>
+      <div className="flex bg-white border-b border-slate-200 px-2 pt-2 gap-1 overflow-x-auto">
+        {STRIPE_CATEGORIES.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setActiveCategory(cat)}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-t-lg transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+              activeCategory === cat
+                ? cat === "Decline"
+                  ? "bg-red-500 text-white"
+                  : cat === "3DS"
+                    ? "bg-yellow-500 text-white"
+                    : "bg-[#635bff] text-white"
+                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+      <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
+        {filtered.map((card) => (
+          <StripeCardRow key={card.number} card={card} />
+        ))}
+      </div>
+    </>
+  );
+}
+
 // ── App ────────────────────────────────────────────────────────
-type Page = "cards" | "settings";
+type Page = "cards" | "stripe" | "settings";
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>("All");
@@ -503,30 +865,55 @@ function App() {
       <div className="min-h-screen bg-slate-100 flex flex-col">
         {/* Header */}
         <div className="bg-[#003087] px-4 py-3 flex items-center gap-3 shadow">
-          <img src="/icon/48.png" alt="logo" className="w-8 h-8 rounded-lg" />
-          <div className="flex-1">
-            <h1 className="text-white font-bold text-sm leading-tight">
-              PayPal Sandbox Cards
-            </h1>
-            <p className="text-blue-300 text-xs">
-              Click để copy · Auto Fill để điền form
-            </p>
-          </div>
-          <button
-            onClick={() => setPage(page === "settings" ? "cards" : "settings")}
-            className={`text-lg px-2 py-1 rounded-lg transition-colors cursor-pointer border-0 ${
-              page === "settings"
-                ? "bg-white text-[#003087]"
-                : "bg-[#004ab3] text-white hover:bg-[#0057cc]"
-            }`}
-            title="Settings"
-          >
-            ⚙
-          </button>
+          {page === "settings" || page === "stripe" ? (
+            <>
+              <button
+                onClick={() => setPage("cards")}
+                className="text-white text-sm font-semibold flex items-center gap-1 cursor-pointer border-0 bg-transparent hover:text-blue-200 transition-colors shrink-0"
+              >
+                ← Back
+              </button>
+              <span className="text-white font-bold text-sm flex-1">
+                {page === "stripe" ? "Stripe Test Cards" : "Settings"}
+              </span>
+            </>
+          ) : (
+            <>
+              <img
+                src="/icon/48.png"
+                alt="logo"
+                className="w-8 h-8 rounded-lg"
+              />
+              <div className="flex-1">
+                <h1 className="text-white font-bold text-sm leading-tight">
+                  PayPal Sandbox Cards
+                </h1>
+                <p className="text-blue-300 text-xs">
+                  Click để copy · Auto Fill để điền form
+                </p>
+              </div>
+              <button
+                onClick={() => setPage("stripe")}
+                className="text-xs font-bold px-2 py-1 rounded-lg transition-colors cursor-pointer border-0 bg-[#635bff] text-white hover:bg-[#4f46e5]"
+                title="Stripe cards"
+              >
+                Stripe
+              </button>
+              <button
+                onClick={() => setPage("settings")}
+                className="text-lg px-2 py-1 rounded-lg transition-colors cursor-pointer border-0 bg-[#004ab3] text-white hover:bg-[#0057cc]"
+                title="Settings"
+              >
+                ⚙
+              </button>
+            </>
+          )}
         </div>
 
         {page === "settings" ? (
           <SettingsPage />
+        ) : page === "stripe" ? (
+          <StripePage />
         ) : (
           <>
             {/* Tabs */}
