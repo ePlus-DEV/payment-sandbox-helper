@@ -10,8 +10,9 @@ import {
   faGear,
   faArrowLeft,
   faRotate,
-  faCopy,
   faSpinner,
+  faFloppyDisk,
+  faCheck,
 } from "@fortawesome/free-solid-svg-icons";
 import {
   faPaypal,
@@ -488,6 +489,14 @@ function SettingsPage() {
     setCardholderName,
   } = useContext(CountryCtx);
 
+  const [nameSaved, setNameSaved] = useState(false);
+
+  const handleSaveName = () => {
+    saveCardholder(cardholderName);
+    setNameSaved(true);
+    setTimeout(() => setNameSaved(false), 1500);
+  };
+
   const PRESETS = [
     { label: "Blue", value: "/img/background/blue.png" },
     { label: "Orange", value: "/img/background/orange.png" },
@@ -631,12 +640,14 @@ function SettingsPage() {
             className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#009cde]"
           />
           <button
-            onClick={() => {
-              copyText(cardholderName);
-            }}
-            className="px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs text-slate-600 cursor-pointer border-0 transition-colors"
+            onClick={handleSaveName}
+            className={`px-3 py-2 rounded-lg text-xs cursor-pointer border-0 transition-all ${
+              nameSaved
+                ? "bg-green-100 text-green-600"
+                : "bg-slate-100 hover:bg-slate-200 text-slate-600"
+            }`}
           >
-            <FontAwesomeIcon icon={faCopy} />
+            <FontAwesomeIcon icon={nameSaved ? faCheck : faFloppyDisk} />
           </button>
         </div>
       </div>
@@ -786,7 +797,11 @@ function CardRow({ group }: { group: CardGroup }) {
             disabled={filling}
             className="text-xs font-bold px-3 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors disabled:opacity-50 cursor-pointer border-0"
           >
-            {filling ? <FontAwesomeIcon icon={faSpinner} className="animate-spin" /> : m("autoFill")}
+            {filling ? (
+              <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
+            ) : (
+              m("autoFill")
+            )}
           </button>
         </div>
 
@@ -962,7 +977,11 @@ function ErrorTriggerRow({ item }: { item: (typeof ERROR_TRIGGERS)[0] }) {
           disabled={filling}
           className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors disabled:opacity-50 cursor-pointer shrink-0"
         >
-          {filling ? <FontAwesomeIcon icon={faSpinner} className="animate-spin" /> : m("fill")}
+          {filling ? (
+            <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
+          ) : (
+            m("fill")
+          )}
         </button>
       </div>
 
@@ -1087,7 +1106,11 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
             disabled={filling}
             className="text-xs font-bold px-3 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors disabled:opacity-50 cursor-pointer border-0"
           >
-            {filling ? <FontAwesomeIcon icon={faSpinner} className="animate-spin" /> : m("autoFill")}
+            {filling ? (
+              <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
+            ) : (
+              m("autoFill")
+            )}
           </button>
         </div>
 
