@@ -1,5 +1,11 @@
 export default defineContentScript({
-  matches: ["<all_urls>"],
+  matches: [
+    "*://*.paypal.com/*",
+    "*://*.sandbox.paypal.com/*",
+    "*://*.stripe.com/*",
+    "*://localhost/*",
+    "*://127.0.0.1/*",
+  ],
   main() {
     browser.runtime.onMessage.addListener((message) => {
       if (message.action === "fillCard") {

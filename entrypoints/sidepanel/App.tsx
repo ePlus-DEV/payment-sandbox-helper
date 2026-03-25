@@ -1,5 +1,4 @@
 import { useState } from "react";
-import "./App.css";
 
 const SANDBOX_CARDS = [
   {
@@ -156,27 +155,23 @@ const SANDBOX_CARDS = [
   },
 ];
 
+const TABS = ["All", "Visa", "Mastercard", "Amex", "Others"] as const;
+type Tab = (typeof TABS)[number];
+
+const TAB_FILTER: Record<Tab, string[]> = {
+  All: [],
+  Visa: ["visa"],
+  Mastercard: ["mastercard"],
+  Amex: ["amex"],
+  Others: ["diners", "maestro", "cup", "jcb"],
+};
+
 type Card = (typeof SANDBOX_CARDS)[0];
 
-function App() {
-  const [status, setStatus] = useState("");
+function CardRow({ card }: { card: Card }) {
   const [copied, setCopied] = useState("");
-
-  const fillCard = async (card: Card) => {
-    const [tab] = await browser.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
-    if (!tab?.id) return;
-    try {
-      await browser.tabs.sendMessage(tab.id, { action: "fillCard", card });
-      setStatus("Đã điền card " + card.label);
-      setTimeout(() => setStatus(""), 3000);
-    } catch {
-      setStatus("Không tìm thấy form thẻ trên trang này");
-      setTimeout(() => setStatus(""), 3000);
-    }
-  };
+  const [filling, setFilling] = useState(false);
+  const [toast, setToast] = useState("");
 
   const copy = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
@@ -184,67 +179,139 @@ function App() {
     setTimeout(() => setCopied(""), 1500);
   };
 
+  const fillCard = async () => {
+    setFilling(true);
+    try {
+      const [tab] = await browser.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+      if (!tab?.id) throw new Error();
+      await browser.tabs.sendMessage(tab.id, { action: "fillCard", card });
+      setToast("Đã điền thành công");
+    } catch {
+      setToast("Không tìm thấy form");
+    } finally {
+      setFilling(false);
+      setTimeout(() => setToast(""), 2500);
+    }
+  };
+
   return (
-    <div className="container">
-      <div className="header">
-        <img src="/icon/48.png" alt="logo" className="logo" />
-        <div>
-          <h1>PayPal Sandbox Cards</h1>
-          <p>Click để tự động điền vào form</p>
+    <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-sm hover:shadow-md transition-shadow">
+      {/* Card type badge + fill button */}
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+          {card.label}
+        </span>
+        <button
+          onClick={fillCard}
+          disabled={filling}
+          className="text-xs font-semibold px-3 py-1 rounded-lg bg-[#009cde] hover:bg-[#0070ba] text-white transition-colors disabled:opacity-50 cursor-pointer"
+        >
+          {filling ? "Filling..." : "Auto Fill"}
+        </button>
+      </div>
+
+      {/* Card number */}
+      <div
+        onClick={() => copy(card.number, "num")}
+        className={`font-mono text-sm tracking-widest px-2 py-1.5 rounded-lg cursor-pointer transition-colors mb-1 ${
+          copied === "num"
+            ? "bg-green-100 text-green-700"
+            : "bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700"
+        }`}
+      >
+        {card.number}
+      </div>
+
+      {/* Expiry + CVV */}
+      <div className="flex gap-2">
+        <div
+          onClick={() => copy(card.expiry, "exp")}
+          className={`flex-1 flex items-center gap-1.5 px-2 py-1 rounded-lg cursor-pointer transition-colors ${
+            copied === "exp"
+              ? "bg-green-100 text-green-700"
+              : "bg-slate-50 hover:bg-blue-50"
+          }`}
+        >
+          <span className="text-[10px] font-bold text-slate-400 uppercase">
+            Exp
+          </span>
+          <span className="font-mono text-xs text-slate-600">
+            {card.expiry}
+          </span>
+        </div>
+        <div
+          onClick={() => copy(card.cvv, "cvv")}
+          className={`flex-1 flex items-center gap-1.5 px-2 py-1 rounded-lg cursor-pointer transition-colors ${
+            copied === "cvv"
+              ? "bg-green-100 text-green-700"
+              : "bg-slate-50 hover:bg-blue-50"
+          }`}
+        >
+          <span className="text-[10px] font-bold text-slate-400 uppercase">
+            CVV
+          </span>
+          <span className="font-mono text-xs text-slate-600">{card.cvv}</span>
         </div>
       </div>
 
-      <div className="cards-list">
-        {SANDBOX_CARDS.map((card) => (
-          <div key={card.number} className="card-item">
-            <div className="card-header">
-              <span className="card-label">{card.label}</span>
-              <button className="fill-btn" onClick={() => fillCard(card)}>
-                Auto Fill
-              </button>
-            </div>
-            <div className="card-fields">
-              <div className="field-row">
-                <span className="field-label">Number</span>
-                <span
-                  className={
-                    "field-value copyable" +
-                    (copied === card.number ? " copied" : "")
-                  }
-                  onClick={() => copy(card.number, card.number)}
-                  title="Click để copy"
-                >
-                  {card.number}
-                </span>
-              </div>
-              <div className="field-row">
-                <span className="field-label">Expiry</span>
-                <span
-                  className={
-                    "field-value copyable" +
-                    (copied === card.number + "exp" ? " copied" : "")
-                  }
-                  onClick={() => copy(card.expiry, card.number + "exp")}
-                >
-                  {card.expiry}
-                </span>
-                <span className="field-label">CVV</span>
-                <span
-                  className={
-                    "field-value copyable" +
-                    (copied === card.number + "cvv" ? " copied" : "")
-                  }
-                  onClick={() => copy(card.cvv, card.number + "cvv")}
-                >
-                  {card.cvv}
-                </span>
-              </div>
-            </div>
-          </div>
+      {toast && (
+        <div className="mt-2 text-center text-xs font-medium text-green-700 bg-green-50 rounded-lg py-1">
+          {toast}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function App() {
+  const [activeTab, setActiveTab] = useState<Tab>("All");
+
+  const filtered =
+    activeTab === "All"
+      ? SANDBOX_CARDS
+      : SANDBOX_CARDS.filter((c) => TAB_FILTER[activeTab].includes(c.type));
+
+  return (
+    <div className="min-h-screen bg-slate-100 flex flex-col">
+      {/* Header */}
+      <div className="bg-[#003087] px-4 py-3 flex items-center gap-3 shadow">
+        <img src="/icon/48.png" alt="logo" className="w-8 h-8 rounded-lg" />
+        <div>
+          <h1 className="text-white font-bold text-sm leading-tight">
+            PayPal Sandbox Cards
+          </h1>
+          <p className="text-blue-300 text-xs">
+            Click số thẻ để copy · Auto Fill để điền form
+          </p>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex bg-white border-b border-slate-200 px-2 pt-2 gap-1">
+        {TABS.map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-t-lg transition-colors cursor-pointer ${
+              activeTab === tab
+                ? "bg-[#003087] text-white"
+                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+            }`}
+          >
+            {tab}
+          </button>
         ))}
       </div>
 
-      {status && <div className="status">{status}</div>}
+      {/* Card list */}
+      <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
+        {filtered.map((card) => (
+          <CardRow key={card.number} card={card} />
+        ))}
+      </div>
     </div>
   );
 }
