@@ -839,11 +839,13 @@ function StripePage() {
 }
 
 // ── App ────────────────────────────────────────────────────────
-type Page = "cards" | "stripe" | "settings";
+type Provider = "paypal" | "stripe";
+type Page = "main" | "settings";
 
 function App() {
+  const [provider, setProvider] = useState<Provider>("paypal");
   const [activeTab, setActiveTab] = useState<Tab>("All");
-  const [page, setPage] = useState<Page>("cards");
+  const [page, setPage] = useState<Page>("main");
   const [country, setCountry] = useState<string>(() => loadCountry());
 
   const errorTestCard = useMemo(
@@ -865,16 +867,16 @@ function App() {
       <div className="min-h-screen bg-slate-100 flex flex-col">
         {/* Header */}
         <div className="bg-[#003087] px-4 py-3 flex items-center gap-3 shadow">
-          {page === "settings" || page === "stripe" ? (
+          {page === "settings" ? (
             <>
               <button
-                onClick={() => setPage("cards")}
+                onClick={() => setPage("main")}
                 className="text-white text-sm font-semibold flex items-center gap-1 cursor-pointer border-0 bg-transparent hover:text-blue-200 transition-colors shrink-0"
               >
                 ← Back
               </button>
               <span className="text-white font-bold text-sm flex-1">
-                {page === "stripe" ? "Stripe Test Cards" : "Settings"}
+                Settings
               </span>
             </>
           ) : (
@@ -886,19 +888,12 @@ function App() {
               />
               <div className="flex-1">
                 <h1 className="text-white font-bold text-sm leading-tight">
-                  PayPal Sandbox Cards
+                  Sandbox Card Filler
                 </h1>
                 <p className="text-blue-300 text-xs">
                   Click để copy · Auto Fill để điền form
                 </p>
               </div>
-              <button
-                onClick={() => setPage("stripe")}
-                className="text-xs font-bold px-2 py-1 rounded-lg transition-colors cursor-pointer border-0 bg-[#635bff] text-white hover:bg-[#4f46e5]"
-                title="Stripe cards"
-              >
-                Stripe
-              </button>
               <button
                 onClick={() => setPage("settings")}
                 className="text-lg px-2 py-1 rounded-lg transition-colors cursor-pointer border-0 bg-[#004ab3] text-white hover:bg-[#0057cc]"
@@ -912,82 +907,113 @@ function App() {
 
         {page === "settings" ? (
           <SettingsPage />
-        ) : page === "stripe" ? (
-          <StripePage />
         ) : (
           <>
-            {/* Tabs */}
-            <div className="flex bg-white border-b border-slate-200 px-2 pt-2 gap-1 overflow-x-auto">
-              {TABS.map((tab) => {
-                const isActive = activeTab === tab;
-                const isError = tab === "Errors";
-                return (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-t-lg transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
-                      isActive
-                        ? isError
-                          ? "bg-red-500 text-white"
-                          : "bg-[#003087] text-white"
-                        : isError
-                          ? "text-red-400 hover:bg-red-50"
-                          : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                );
-              })}
+            {/* Provider switcher */}
+            <div className="flex bg-white border-b-2 border-slate-200">
+              <button
+                onClick={() => setProvider("paypal")}
+                className={`flex-1 py-2.5 text-sm font-bold transition-colors cursor-pointer border-0 ${
+                  provider === "paypal"
+                    ? "text-[#003087] border-b-2 border-[#003087] bg-blue-50"
+                    : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                🅿 PayPal
+              </button>
+              <button
+                onClick={() => setProvider("stripe")}
+                className={`flex-1 py-2.5 text-sm font-bold transition-colors cursor-pointer border-0 ${
+                  provider === "stripe"
+                    ? "text-[#635bff] border-b-2 border-[#635bff] bg-purple-50"
+                    : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                ⚡ Stripe
+              </button>
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
-              {activeTab === "Errors" ? (
-                <>
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 mb-2">
-                    <p className="mb-2">
-                      Điền trigger vào field{" "}
-                      <span className="font-bold">Name on Card</span>. Dùng thẻ
-                      Visa:
-                    </p>
-                    <div className="flex flex-col gap-1">
+            {provider === "stripe" ? (
+              <StripePage />
+            ) : (
+              <>
+                {/* PayPal Tabs */}
+                <div className="flex bg-white border-b border-slate-200 px-2 pt-2 gap-1 overflow-x-auto">
+                  {TABS.map((tab) => {
+                    const isActive = activeTab === tab;
+                    const isError = tab === "Errors";
+                    return (
                       <button
-                        onClick={() => copyText(errorTestCard.number)}
-                        className="w-full text-left font-mono font-bold px-2 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 cursor-pointer border-0 text-amber-900 transition-colors"
+                        key={tab}
+                        onClick={() => setActiveTab(tab)}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-t-lg transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                          isActive
+                            ? isError
+                              ? "bg-red-500 text-white"
+                              : "bg-[#003087] text-white"
+                            : isError
+                              ? "text-red-400 hover:bg-red-50"
+                              : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                        }`}
                       >
-                        {errorTestCard.number}
+                        {tab}
                       </button>
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => copyText(errorTestCard.expiry)}
-                          className="flex-1 flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 cursor-pointer border-0 text-amber-900 transition-colors"
-                        >
-                          <span className="font-bold">Exp</span>
-                          <span className="font-mono">
-                            {errorTestCard.expiry}
-                          </span>
-                        </button>
-                        <button
-                          onClick={() => copyText(errorTestCard.cvv)}
-                          className="flex-1 flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 cursor-pointer border-0 text-amber-900 transition-colors"
-                        >
-                          <span className="font-bold">CVV</span>
-                          <span className="font-mono">{errorTestCard.cvv}</span>
-                        </button>
+                    );
+                  })}
+                </div>
+
+                {/* PayPal Content */}
+                <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
+                  {activeTab === "Errors" ? (
+                    <>
+                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 mb-2">
+                        <p className="mb-2">
+                          Điền trigger vào field{" "}
+                          <span className="font-bold">Name on Card</span>. Dùng
+                          thẻ Visa:
+                        </p>
+                        <div className="flex flex-col gap-1">
+                          <button
+                            onClick={() => copyText(errorTestCard.number)}
+                            className="w-full text-left font-mono font-bold px-2 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 cursor-pointer border-0 text-amber-900 transition-colors"
+                          >
+                            {errorTestCard.number}
+                          </button>
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => copyText(errorTestCard.expiry)}
+                              className="flex-1 flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 cursor-pointer border-0 text-amber-900 transition-colors"
+                            >
+                              <span className="font-bold">Exp</span>
+                              <span className="font-mono">
+                                {errorTestCard.expiry}
+                              </span>
+                            </button>
+                            <button
+                              onClick={() => copyText(errorTestCard.cvv)}
+                              className="flex-1 flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 cursor-pointer border-0 text-amber-900 transition-colors"
+                            >
+                              <span className="font-bold">CVV</span>
+                              <span className="font-mono">
+                                {errorTestCard.cvv}
+                              </span>
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                  {ERROR_TRIGGERS.map((item) => (
-                    <ErrorTriggerRow key={item.trigger} item={item} />
-                  ))}
-                </>
-              ) : (
-                filtered.map((group) => (
-                  <CardRow key={group.type} group={group} />
-                ))
-              )}
-            </div>
+                      {ERROR_TRIGGERS.map((item) => (
+                        <ErrorTriggerRow key={item.trigger} item={item} />
+                      ))}
+                    </>
+                  ) : (
+                    filtered.map((group) => (
+                      <CardRow key={group.type} group={group} />
+                    ))
+                  )}
+                </div>
+              </>
+            )}
           </>
         )}
       </div>
