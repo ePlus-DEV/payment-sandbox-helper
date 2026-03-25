@@ -506,83 +506,92 @@ function CardRow({ group }: { group: CardGroup }) {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-sm">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-            {group.label}
-          </span>
-          <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded font-mono">
-            {country}
-          </span>
+    <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200">
+      {/* Card face */}
+      <div className="bg-gradient-to-br from-slate-700 to-slate-900 px-4 pt-4 pb-3 relative">
+        {/* Top row: label + country + actions */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-white uppercase tracking-widest opacity-90">
+              {group.label}
+            </span>
+            <span className="text-[10px] text-slate-300 bg-white/10 px-1.5 py-0.5 rounded font-mono">
+              {country}
+            </span>
+          </div>
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => handleGenerate()}
+              title="Generate new card"
+              className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer border-0"
+            >
+              <FontAwesomeIcon
+                icon={faRotate}
+                className={spinning ? "animate-spin" : ""}
+                size="xs"
+              />
+            </button>
+            <button
+              onClick={fillCard}
+              disabled={filling}
+              className="text-xs font-bold px-3 py-1 rounded-lg bg-[#009cde] hover:bg-[#0070ba] text-white transition-colors disabled:opacity-50 cursor-pointer border-0"
+            >
+              {filling ? "..." : "Auto Fill"}
+            </button>
+          </div>
         </div>
-        <div className="flex gap-1.5">
-          <button
-            onClick={() => handleGenerate()}
-            title="Generate new card"
-            className="text-xs px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer border-0"
-          >
-            <FontAwesomeIcon
-              icon={faRotate}
-              className={spinning ? "animate-spin" : ""}
-            />
-          </button>
-          <button
-            onClick={fillCard}
-            disabled={filling}
-            className="text-xs font-semibold px-3 py-1 rounded-lg bg-[#009cde] hover:bg-[#0070ba] text-white transition-colors disabled:opacity-50 cursor-pointer"
-          >
-            {filling ? "..." : "Auto Fill"}
-          </button>
-        </div>
+
+        {/* Card number */}
+        <button
+          onClick={() => copy(card.number, "num")}
+          className={`w-full text-left font-mono text-base tracking-[0.2em] px-0 py-1 border-0 bg-transparent transition-colors cursor-pointer ${
+            copied === "num"
+              ? "text-green-300"
+              : "text-white hover:text-blue-200"
+          }`}
+        >
+          {copied === "num"
+            ? "Copied!"
+            : card.number.replace(/(.{4})/g, "$1 ").trim()}
+        </button>
       </div>
 
-      <button
-        onClick={() => copy(card.number, "num")}
-        className={`w-full text-left font-mono text-sm tracking-widest px-2 py-1.5 rounded-lg transition-colors mb-1 cursor-pointer border-0 ${
-          copied === "num"
-            ? "bg-green-100 text-green-700"
-            : "bg-slate-50 hover:bg-blue-50 text-slate-700"
-        }`}
-      >
-        {copied === "num" ? "Copied!" : card.number}
-      </button>
-
-      <div className="flex gap-2">
+      {/* Bottom row: exp + cvv */}
+      <div className="flex bg-slate-50 border-t border-slate-200">
         <button
           onClick={() => copy(card.expiry, "exp")}
-          className={`flex-1 flex items-center gap-1.5 px-2 py-1 rounded-lg cursor-pointer transition-colors border-0 ${
+          className={`flex-1 flex items-center gap-1.5 px-3 py-2 cursor-pointer transition-colors border-0 border-r border-slate-200 ${
             copied === "exp"
-              ? "bg-green-100 text-green-700"
-              : "bg-slate-50 hover:bg-blue-50"
+              ? "bg-green-50 text-green-700"
+              : "bg-transparent hover:bg-blue-50"
           }`}
         >
           <span className="text-[10px] font-bold text-slate-400 uppercase">
             Exp
           </span>
-          <span className="font-mono text-xs text-slate-600">
+          <span className="font-mono text-xs text-slate-700 font-semibold">
             {copied === "exp" ? "Copied!" : card.expiry}
           </span>
         </button>
         <button
           onClick={() => copy(card.cvv, "cvv")}
-          className={`flex-1 flex items-center gap-1.5 px-2 py-1 rounded-lg cursor-pointer transition-colors border-0 ${
+          className={`flex-1 flex items-center gap-1.5 px-3 py-2 cursor-pointer transition-colors border-0 ${
             copied === "cvv"
-              ? "bg-green-100 text-green-700"
-              : "bg-slate-50 hover:bg-blue-50"
+              ? "bg-green-50 text-green-700"
+              : "bg-transparent hover:bg-blue-50"
           }`}
         >
           <span className="text-[10px] font-bold text-slate-400 uppercase">
             CVV
           </span>
-          <span className="font-mono text-xs text-slate-600">
+          <span className="font-mono text-xs text-slate-700 font-semibold">
             {copied === "cvv" ? "Copied!" : card.cvv}
           </span>
         </button>
       </div>
 
       {toast && (
-        <div className="mt-2 text-center text-xs font-medium text-green-700 bg-green-50 rounded-lg py-1">
+        <div className="text-center text-xs font-medium text-green-700 bg-green-50 py-1.5">
           {toast}
         </div>
       )}
