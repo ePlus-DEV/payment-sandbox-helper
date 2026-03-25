@@ -21,14 +21,14 @@ import {
   faCcJcb,
   faCcDinersClub,
 } from "@fortawesome/free-brands-svg-icons";
-import {
-  type Lang,
-  type T,
-  LANG_KEY,
-  loadLang,
-  translations,
-  SUPPORTED_LANGS,
-} from "../../utils/i18n";
+
+const m = (key: Parameters<typeof browser.i18n.getMessage>[0]) =>
+  browser.i18n.getMessage(key);
+
+const SUPPORTED_LANGS = [
+  { code: "en", label: "English", flag: "🇺🇸" },
+  { code: "vi", label: "Tiếng Việt", flag: "🇻🇳" },
+];
 
 // ── Countries ──────────────────────────────────────────────────
 const COUNTRIES = [
@@ -57,6 +57,7 @@ const COUNTRIES = [
 const STORAGE_KEY = "paypal_sandbox_country";
 const BG_PAYPAL_KEY = "card_bg_paypal";
 const BG_STRIPE_KEY = "card_bg_stripe";
+const CARDHOLDER_KEY = "sandbox_pay_cardholder";
 
 function loadCountry(): string {
   return localStorage.getItem(STORAGE_KEY) ?? "US";
@@ -64,6 +65,14 @@ function loadCountry(): string {
 
 function saveCountry(code: string) {
   localStorage.setItem(STORAGE_KEY, code);
+}
+
+function loadCardholder(): string {
+  return localStorage.getItem(CARDHOLDER_KEY) ?? "Test User";
+}
+
+function saveCardholder(name: string) {
+  localStorage.setItem(CARDHOLDER_KEY, name);
 }
 
 function loadBg(key: string): string {
@@ -82,9 +91,8 @@ const CountryCtx = createContext<{
   setBgPaypal: (v: string) => void;
   bgStripe: string;
   setBgStripe: (v: string) => void;
-  lang: Lang;
-  setLang: (l: Lang) => void;
-  t: T;
+  cardholderName: string;
+  setCardholderName: (n: string) => void;
 }>({
   country: "US",
   setCountry: () => {},
@@ -92,9 +100,8 @@ const CountryCtx = createContext<{
   setBgPaypal: () => {},
   bgStripe: "",
   setBgStripe: () => {},
-  lang: "en",
-  setLang: () => {},
-  t: translations.en,
+  cardholderName: "Test User",
+  setCardholderName: () => {},
 });
 
 // ── Luhn algorithm ─────────────────────────────────────────────
@@ -432,6 +439,25 @@ const TAB_FILTER: Record<Tab, string[]> = {
   Errors: [],
 };
 
+const TAB_LABEL: Record<Tab, Parameters<typeof browser.i18n.getMessage>[0]> = {
+  All: "tabAll",
+  Visa: "tabVisa",
+  Mastercard: "tabMastercard",
+  Amex: "tabAmex",
+  Others: "tabOthers",
+  Errors: "tabErrors",
+};
+
+const STRIPE_CAT_LABEL: Record<
+  StripeCategory,
+  Parameters<typeof browser.i18n.getMessage>[0]
+> = {
+  All: "catAll",
+  Success: "catSuccess",
+  Decline: "catDecline",
+  "3DS": "cat3DS",
+};
+
 // ── Clipboard ──────────────────────────────────────────────────
 function copyText(text: string) {
   try {
@@ -456,9 +482,8 @@ function SettingsPage() {
     setBgPaypal,
     bgStripe,
     setBgStripe,
-    lang,
-    setLang,
-    t,
+    cardholderName,
+    setCardholderName,
   } = useContext(CountryCtx);
 
   const PRESETS = [
@@ -510,7 +535,7 @@ function SettingsPage() {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-xs text-slate-400">
-            {t.noBackground}
+            {m("noBackground")}
           </div>
         )}
       </div>
@@ -544,7 +569,7 @@ function SettingsPage() {
         ))}
       </div>
       <label className="w-full text-center text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 cursor-pointer transition-colors block">
-        {t.customUpload}
+        {m("customUpload")}
         <input
           type="file"
           accept="image/*"
@@ -557,13 +582,13 @@ function SettingsPage() {
 
   return (
     <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-      <h2 className="text-sm font-bold text-slate-700">{t.settings}</h2>
+      <h2 className="text-sm font-bold text-slate-700">{m("settings")}</h2>
 
       <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
         <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-          {t.country}
+          {m("country")}
         </label>
-        <p className="text-xs text-slate-400 mb-3">{t.countryDesc}</p>
+        <p className="text-xs text-slate-400 mb-3">{m("countryDesc")}</p>
         <select
           value={country}
           onChange={(e) => {
@@ -579,7 +604,7 @@ function SettingsPage() {
           ))}
         </select>
         <div className="mt-3 px-3 py-2 bg-slate-50 rounded-lg">
-          <span className="text-xs text-slate-500">{t.selected}: </span>
+          <span className="text-xs text-slate-500">{m("selected")}: </span>
           <span className="text-xs font-mono font-bold text-slate-700">
             {country}
           </span>
@@ -590,32 +615,48 @@ function SettingsPage() {
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
-          {t.language}
+        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+          {m("defaultCardholderName")}
         </label>
+        <p className="text-xs text-slate-400 mb-3">
+          {m("defaultCardholderNameDesc")}
+        </p>
         <div className="flex gap-2">
-          {SUPPORTED_LANGS.map((l) => (
-            <button
-              key={l.code}
-              onClick={() => setLang(l.code)}
-              className={`flex-1 py-2 rounded-lg text-sm font-semibold border transition-colors cursor-pointer ${
-                lang === l.code
-                  ? "bg-[#003087] text-white border-[#003087]"
-                  : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              {l.flag} {l.label}
-            </button>
-          ))}
+          <input
+            value={cardholderName}
+            onChange={(e) => setCardholderName(e.target.value)}
+            placeholder={m("cardholderPlaceholder")}
+            className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#009cde]"
+          />
+          <button
+            onClick={() => {
+              copyText(cardholderName);
+            }}
+            className="px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs text-slate-600 cursor-pointer border-0 transition-colors"
+          >
+            {m("copied").includes("copy") || m("copied").includes("Copy")
+              ? "⎘"
+              : "⎘"}
+          </button>
         </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+          {m("language")}
+        </label>
+        <p className="text-xs text-slate-400">{m("languageDesc")}</p>
+        <p className="text-xs font-mono text-slate-600 mt-1">
+          {browser.i18n.getUILanguage()}
+        </p>
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col gap-4">
         <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide">
-          {t.cardBackground}
+          {m("cardBackground")}
         </label>
         <BgPicker
-          label={t.paypalCards}
+          label={m("paypalCards")}
           value={bgPaypal}
           setter={setBgPaypal}
           storageKey={BG_PAYPAL_KEY}
@@ -623,7 +664,7 @@ function SettingsPage() {
         />
         <div className="border-t border-slate-100" />
         <BgPicker
-          label={t.stripeCards}
+          label={m("stripeCards")}
           value={bgStripe}
           setter={setBgStripe}
           storageKey={BG_STRIPE_KEY}
@@ -659,20 +700,21 @@ const CARD_GRADIENT: Record<string, string> = {
 type CardGroup = (typeof CARD_GROUPS)[0];
 
 function CardRow({ group }: { group: CardGroup }) {
-  const { country, bgPaypal, t } = useContext(CountryCtx);
+  const { country, bgPaypal, cardholderName } = useContext(CountryCtx);
 
   const generate = useCallback(
     () => ({
       number: generateCardNumber(group.type),
       expiry: randomExpiry(),
       cvv: randomCvv(group.amex),
-      name: t.testUser,
+      name: cardholderName,
     }),
-    [group],
+    [group, cardholderName],
   );
 
   const [card, setCard] = useState(() => generate());
   const [spinning, setSpinning] = useState(false);
+  const [editingName, setEditingName] = useState(false);
   const [copied, setCopied] = useState("");
   const [filling, setFilling] = useState(false);
   const [toast, setToast] = useState("");
@@ -701,9 +743,9 @@ function CardRow({ group }: { group: CardGroup }) {
         action: "fillCard",
         card: { ...card, label: group.label, type: group.type, country },
       });
-      setToast(t.filled);
+      setToast(m("filled"));
     } catch {
-      setToast(t.noForm);
+      setToast(m("noForm"));
     } finally {
       setFilling(false);
       setTimeout(() => setToast(""), 2000);
@@ -731,7 +773,7 @@ function CardRow({ group }: { group: CardGroup }) {
         <div className="flex justify-end gap-1.5 mb-3">
           <button
             onClick={() => handleGenerate()}
-            {...{ title: t.generateNew }}
+            {...{ title: m("generateNew") }}
             className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/15 hover:bg-white/25 text-white transition-colors cursor-pointer border-0"
           >
             <FontAwesomeIcon
@@ -745,7 +787,7 @@ function CardRow({ group }: { group: CardGroup }) {
             disabled={filling}
             className="text-xs font-bold px-3 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors disabled:opacity-50 cursor-pointer border-0"
           >
-            {filling ? "..." : t.autoFill}
+            {filling ? "..." : m("autoFill")}
           </button>
         </div>
 
@@ -759,19 +801,46 @@ function CardRow({ group }: { group: CardGroup }) {
           }`}
         >
           {copied === "num"
-            ? t.copiedCheck
+            ? m("copiedCheck")
             : card.number.replace(/(.{4})/g, "$1 ").trim()}
         </button>
 
         {/* Bottom: name + brand icon */}
         <div className="flex items-end justify-between">
-          <div>
-            <div className="text-[10px] text-white/50 uppercase tracking-widest mb-0.5">
-              {t.cardholder}
+          <div className="flex-1 min-w-0 mr-2">
+            <div className="text-[10px] text-white/50 uppercase tracking-widest mb-0.5 flex items-center gap-1.5">
+              {m("cardholder")}
+              <button
+                onClick={() => setEditingName((v) => !v)}
+                className="text-white/40 hover:text-white/80 border-0 bg-transparent cursor-pointer p-0 text-[10px]"
+                title={m("editName")}
+              >
+                ✎
+              </button>
+              <button
+                onClick={() => copy(card.name, "name")}
+                className="text-white/40 hover:text-white/80 border-0 bg-transparent cursor-pointer p-0 text-[10px]"
+              >
+                {copied === "name" ? "✓" : "⎘"}
+              </button>
             </div>
-            <div className="text-xs font-semibold text-white/90 uppercase tracking-wide">
-              {card.name}
-            </div>
+            {editingName ? (
+              <input
+                autoFocus
+                value={card.name}
+                onChange={(e) =>
+                  setCard((c) => ({ ...c, name: e.target.value }))
+                }
+                onBlur={() => setEditingName(false)}
+                onKeyDown={(e) => e.key === "Enter" && setEditingName(false)}
+                className="text-xs font-semibold bg-white/10 text-white border-0 border-b border-white/40 outline-none w-full uppercase tracking-wide px-0 py-0.5"
+                placeholder={m("cardholderPlaceholder")}
+              />
+            ) : (
+              <div className="text-xs font-semibold text-white/90 uppercase tracking-wide truncate">
+                {card.name}
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-white/50 font-mono">
@@ -796,7 +865,7 @@ function CardRow({ group }: { group: CardGroup }) {
       <div className="bg-gray-100 px-5 py-3 flex items-center justify-between">
         <div>
           <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest mb-1">
-            {t.expiryDate}
+            {m("expiryDate")}
           </div>
           <button
             onClick={() => copy(card.expiry, "exp")}
@@ -806,12 +875,12 @@ function CardRow({ group }: { group: CardGroup }) {
                 : "text-gray-800 hover:text-blue-600"
             }`}
           >
-            {copied === "exp" ? t.copied : card.expiry}
+            {copied === "exp" ? m("copied") : card.expiry}
           </button>
         </div>
         <div className="text-right">
           <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest mb-1">
-            {t.cvv}
+            {m("cvv")}
           </div>
           <button
             onClick={() => copy(card.cvv, "cvv")}
@@ -821,7 +890,7 @@ function CardRow({ group }: { group: CardGroup }) {
                 : "text-gray-800 hover:text-blue-600"
             }`}
           >
-            {copied === "cvv" ? t.copied : card.cvv}
+            {copied === "cvv" ? m("copied") : card.cvv}
           </button>
         </div>
       </div>
@@ -837,7 +906,7 @@ function CardRow({ group }: { group: CardGroup }) {
 
 // ── ErrorTriggerRow ────────────────────────────────────────────
 function ErrorTriggerRow({ item }: { item: (typeof ERROR_TRIGGERS)[0] }) {
-  const { country, t } = useContext(CountryCtx);
+  const { country } = useContext(CountryCtx);
 
   const genTestCard = useCallback(
     () => ({
@@ -881,9 +950,9 @@ function ErrorTriggerRow({ item }: { item: (typeof ERROR_TRIGGERS)[0] }) {
         action: "fillCard",
         card: { ...testCard, country },
       });
-      setToast(t.filled);
+      setToast(m("filled"));
     } catch {
-      setToast(t.noForm);
+      setToast(m("noForm"));
     } finally {
       setFilling(false);
       setTimeout(() => setToast(""), 2000);
@@ -901,7 +970,7 @@ function ErrorTriggerRow({ item }: { item: (typeof ERROR_TRIGGERS)[0] }) {
         </span>
         <button
           onClick={() => handleGenerateErr()}
-          {...{ title: t.generateNew }}
+          {...{ title: m("generateNew") }}
           className="text-xs px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer border-0 shrink-0"
         >
           <FontAwesomeIcon
@@ -914,7 +983,7 @@ function ErrorTriggerRow({ item }: { item: (typeof ERROR_TRIGGERS)[0] }) {
           disabled={filling}
           className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors disabled:opacity-50 cursor-pointer shrink-0"
         >
-          {filling ? "..." : t.fill}
+          {filling ? "..." : m("fill")}
         </button>
       </div>
 
@@ -926,7 +995,7 @@ function ErrorTriggerRow({ item }: { item: (typeof ERROR_TRIGGERS)[0] }) {
             : "bg-red-50 hover:bg-red-100 text-red-700"
         }`}
       >
-        {copied ? t.copied : item.trigger}
+        {copied ? m("copied") : item.trigger}
       </button>
 
       <p className="text-[10px] text-slate-400 leading-relaxed">{item.desc}</p>
@@ -942,12 +1011,12 @@ function ErrorTriggerRow({ item }: { item: (typeof ERROR_TRIGGERS)[0] }) {
 
 // ── StripeCardRow ──────────────────────────────────────────────
 function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
-  const { country, bgStripe, t } = useContext(CountryCtx);
+  const { country, bgStripe, cardholderName } = useContext(CountryCtx);
   const [card_data] = useState(() => ({
     number: card.number,
     expiry: randomExpiry(),
     cvv: randomCvv(card.cvvLen === 4),
-    name: t.testUser,
+    name: cardholderName,
   }));
   const [copied, setCopied] = useState("");
   const [filling, setFilling] = useState(false);
@@ -971,9 +1040,9 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
         action: "fillCard",
         card: { ...card_data, label: card.label, type: "stripe", country },
       });
-      setToast(t.filled);
+      setToast(m("filled"));
     } catch {
-      setToast(t.noForm);
+      setToast(m("noForm"));
     } finally {
       setFilling(false);
       setTimeout(() => setToast(""), 2000);
@@ -1039,7 +1108,7 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
             disabled={filling}
             className="text-xs font-bold px-3 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors disabled:opacity-50 cursor-pointer border-0"
           >
-            {filling ? "..." : t.autoFill}
+            {filling ? "..." : m("autoFill")}
           </button>
         </div>
 
@@ -1053,7 +1122,7 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
           }`}
         >
           {copied === "num"
-            ? t.copiedCheck
+            ? m("copiedCheck")
             : card.number.replace(/(.{4})/g, "$1 ").trim()}
         </button>
 
@@ -1061,7 +1130,7 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
         <div className="flex items-end justify-between">
           <div>
             <div className="text-[10px] text-white/50 uppercase tracking-widest mb-0.5">
-              {t.cardholder}
+              {m("cardholder")}
             </div>
             <div className="text-xs font-semibold text-white/90 uppercase tracking-wide">
               {card_data.name}
@@ -1090,7 +1159,7 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
       <div className="bg-gray-100 px-5 py-3 flex items-center justify-between">
         <div>
           <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest mb-1">
-            {t.expiryDate}
+            {m("expiryDate")}
           </div>
           <button
             onClick={() => copy(card_data.expiry, "exp")}
@@ -1100,12 +1169,12 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
                 : "text-gray-800 hover:text-blue-600"
             }`}
           >
-            {copied === "exp" ? t.copied : card_data.expiry}
+            {copied === "exp" ? m("copied") : card_data.expiry}
           </button>
         </div>
         <div className="text-right">
           <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest mb-1">
-            CVC
+            {m("cvc")}
           </div>
           <button
             onClick={() => copy(card_data.cvv, "cvv")}
@@ -1115,7 +1184,7 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
                 : "text-gray-800 hover:text-blue-600"
             }`}
           >
-            {copied === "cvv" ? t.copied : card_data.cvv}
+            {copied === "cvv" ? m("copied") : card_data.cvv}
           </button>
         </div>
       </div>
@@ -1156,7 +1225,7 @@ function StripePage() {
                 : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
             }`}
           >
-            {cat}
+            {m(STRIPE_CAT_LABEL[cat])}
           </button>
         ))}
       </div>
@@ -1180,12 +1249,13 @@ function App() {
   const [country, setCountry] = useState<string>(() => loadCountry());
   const [bgPaypal, setBgPaypal] = useState<string>(() => loadBg(BG_PAYPAL_KEY));
   const [bgStripe, setBgStripe] = useState<string>(() => loadBg(BG_STRIPE_KEY));
-  const [lang, setLangState] = useState<Lang>(() => loadLang());
-  const t = translations[lang];
+  const [cardholderName, setCardholderNameState] = useState<string>(() =>
+    loadCardholder(),
+  );
 
-  const setLang = (l: Lang) => {
-    setLangState(l);
-    localStorage.setItem(LANG_KEY, l);
+  const setCardholderName = (n: string) => {
+    setCardholderNameState(n);
+    saveCardholder(n);
   };
 
   const errorTestCard = useMemo(
@@ -1211,9 +1281,8 @@ function App() {
         setBgPaypal,
         bgStripe,
         setBgStripe,
-        lang,
-        setLang,
-        t,
+        cardholderName,
+        setCardholderName,
       }}
     >
       <div className="min-h-screen bg-slate-100 flex flex-col">
@@ -1226,10 +1295,10 @@ function App() {
                 className="text-white text-sm font-semibold flex items-center gap-1.5 cursor-pointer border-0 bg-transparent hover:text-blue-200 transition-colors shrink-0"
               >
                 <FontAwesomeIcon icon={faArrowLeft} />
-                {t.back}
+                {m("back")}
               </button>
               <span className="text-white font-bold text-sm flex-1">
-                {t.settings}
+                {m("settings")}
               </span>
             </>
           ) : (
@@ -1241,9 +1310,9 @@ function App() {
               />
               <div className="flex-1">
                 <h1 className="text-white font-bold text-sm leading-tight">
-                  {t.appName}
+                  {m("appName")}
                 </h1>
-                <p className="text-blue-300 text-xs">{t.appDesc}</p>
+                <p className="text-blue-300 text-xs">{m("appDesc")}</p>
               </div>
               <button
                 onClick={() => setPage("settings")}
@@ -1310,7 +1379,7 @@ function App() {
                               : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
                         }`}
                       >
-                        {tab}
+                        {m(TAB_LABEL[tab])}
                       </button>
                     );
                   })}
@@ -1322,9 +1391,11 @@ function App() {
                     <>
                       <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 mb-2">
                         <p className="mb-2">
-                          {t.errorNote}{" "}
-                          <span className="font-bold">{t.errorNoteField}</span>.{" "}
-                          {t.errorNoteDesc}
+                          {m("errorNote")}{" "}
+                          <span className="font-bold">
+                            {m("errorNoteField")}
+                          </span>
+                          . {m("errorNoteDesc")}
                         </p>
                         <div className="flex flex-col gap-1">
                           <button
@@ -1339,7 +1410,7 @@ function App() {
                               className="flex-1 flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 cursor-pointer border-0 text-amber-900 transition-colors"
                             >
                               <span className="font-bold">
-                                {t.expiryDate.substring(0, 3)}
+                                {m("expiryDate").substring(0, 3)}
                               </span>
                               <span className="font-mono">
                                 {errorTestCard.expiry}
@@ -1349,7 +1420,7 @@ function App() {
                               onClick={() => copyText(errorTestCard.cvv)}
                               className="flex-1 flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 cursor-pointer border-0 text-amber-900 transition-colors"
                             >
-                              <span className="font-bold">{t.cvv}</span>
+                              <span className="font-bold">{m("cvv")}</span>
                               <span className="font-mono">
                                 {errorTestCard.cvv}
                               </span>

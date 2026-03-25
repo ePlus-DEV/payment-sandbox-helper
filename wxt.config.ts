@@ -7,9 +7,9 @@ export default defineConfig({
     plugins: [tailwindcss()],
   }),
   manifest: {
-    name: "Sandbox Pay",
-    description:
-      "Fill PayPal & Stripe test cards instantly for sandbox testing",
+    name: "__MSG_extName__",
+    description: "__MSG_extDescription__",
+    default_locale: "en",
     version: "1.0.0",
     permissions: [
       "activeTab",
@@ -21,8 +21,6 @@ export default defineConfig({
     side_panel: {
       default_path: "sidepanel.html",
     },
-    action: {
-      // không set default_popup để onClicked có thể trigger
-    },
+    action: {},
   },
 });
