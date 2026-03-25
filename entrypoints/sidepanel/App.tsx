@@ -10,6 +10,8 @@ import {
   faGear,
   faArrowLeft,
   faRotate,
+  faCopy,
+  faSpinner,
 } from "@fortawesome/free-solid-svg-icons";
 import {
   faPaypal,
@@ -634,9 +636,7 @@ function SettingsPage() {
             }}
             className="px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs text-slate-600 cursor-pointer border-0 transition-colors"
           >
-            {m("copied").includes("copy") || m("copied").includes("Copy")
-              ? "⎘"
-              : "⎘"}
+            <FontAwesomeIcon icon={faCopy} />
           </button>
         </div>
       </div>
@@ -786,7 +786,7 @@ function CardRow({ group }: { group: CardGroup }) {
             disabled={filling}
             className="text-xs font-bold px-3 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors disabled:opacity-50 cursor-pointer border-0"
           >
-            {filling ? "..." : m("autoFill")}
+            {filling ? <FontAwesomeIcon icon={faSpinner} className="animate-spin" /> : m("autoFill")}
           </button>
         </div>
 
@@ -962,7 +962,7 @@ function ErrorTriggerRow({ item }: { item: (typeof ERROR_TRIGGERS)[0] }) {
           disabled={filling}
           className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors disabled:opacity-50 cursor-pointer shrink-0"
         >
-          {filling ? "..." : m("fill")}
+          {filling ? <FontAwesomeIcon icon={faSpinner} className="animate-spin" /> : m("fill")}
         </button>
       </div>
 
@@ -1087,7 +1087,7 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
             disabled={filling}
             className="text-xs font-bold px-3 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors disabled:opacity-50 cursor-pointer border-0"
           >
-            {filling ? "..." : m("autoFill")}
+            {filling ? <FontAwesomeIcon icon={faSpinner} className="animate-spin" /> : m("autoFill")}
           </button>
         </div>
 
