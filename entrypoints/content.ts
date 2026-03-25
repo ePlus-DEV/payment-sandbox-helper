@@ -20,6 +20,7 @@ interface CardData {
   expiry: string;
   cvv: string;
   name: string;
+  country?: string;
 }
 
 function setNativeValue(el: HTMLInputElement, value: string) {
@@ -123,4 +124,31 @@ function fillCardForm(card: CardData) {
     'input[name="cc-name"]',
   ]);
   fillInput(nameEl, card.name);
+
+  // Country
+  if (card.country) {
+    const countryEl = findInput([
+      'input[name*="country" i]',
+      'input[id*="country" i]',
+      'input[autocomplete="country"]',
+      'input[autocomplete="billing country"]',
+    ]);
+    fillInput(countryEl, card.country);
+
+    // Select dropdown
+    const countrySelect = document.querySelector<HTMLSelectElement>(
+      'select[name*="country" i], select[id*="country" i], select[autocomplete="country"]',
+    );
+    if (countrySelect) {
+      const opt = Array.from(countrySelect.options).find(
+        (o) =>
+          o.value.toUpperCase() === card.country ||
+          o.text.toUpperCase().includes(card.country!.toUpperCase()),
+      );
+      if (opt) {
+        countrySelect.value = opt.value;
+        countrySelect.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    }
+  }
 }
