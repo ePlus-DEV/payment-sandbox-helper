@@ -45,8 +45,11 @@ jobs:
           node-version: 24.x
           cache: "yarn"
 
+      - name: Enable Corepack (Yarn 4)
+        run: corepack enable
+
       - name: Install dependencies
-        run: yarn install --frozen-lockfile --ignore-scripts --ignore-engines
+        run: yarn install --immutable --mode=skip-build
 
       - name: Prepare WXT types
         run: yarn wxt prepare
