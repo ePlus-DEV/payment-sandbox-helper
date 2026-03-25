@@ -156,11 +156,13 @@ const SANDBOX_CARDS = [
   },
 ];
 
-function App() {
-  const [status, setStatus] = useState<string>("");
-  const [copied, setCopied] = useState<string>("");
+type Card = (typeof SANDBOX_CARDS)[0];
 
-  const fillCard = async (card: (typeof SANDBOX_CARDS)[0]) => {
+function App() {
+  const [status, setStatus] = useState("");
+  const [copied, setCopied] = useState("");
+
+  const fillCard = async (card: Card) => {
     const [tab] = await browser.tabs.query({
       active: true,
       currentWindow: true,
@@ -168,7 +170,7 @@ function App() {
     if (!tab?.id) return;
     try {
       await browser.tabs.sendMessage(tab.id, { action: "fillCard", card });
-      setStatus(`Đã điền card ${card.label}`);
+      setStatus("Đã điền card " + card.label);
       setTimeout(() => setStatus(""), 3000);
     } catch {
       setStatus("Không tìm thấy form thẻ trên trang này");
@@ -176,9 +178,9 @@ function App() {
     }
   };
 
-  const copyToClipboard = (text: string, field: string) => {
+  const copy = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
-    setCopied(field);
+    setCopied(key);
     setTimeout(() => setCopied(""), 1500);
   };
 
@@ -205,8 +207,11 @@ function App() {
               <div className="field-row">
                 <span className="field-label">Number</span>
                 <span
-                  className={`field-value copyable ${copied === card.number ? "copied" : ""}`}
-                  onClick={() => copyToClipboard(card.number, card.number)}
+                  className={
+                    "field-value copyable" +
+                    (copied === card.number ? " copied" : "")
+                  }
+                  onClick={() => copy(card.number, card.number)}
                   title="Click để copy"
                 >
                   {card.number}
@@ -215,17 +220,21 @@ function App() {
               <div className="field-row">
                 <span className="field-label">Expiry</span>
                 <span
-                  className={`field-value copyable ${copied === card.number + "exp" ? "copied" : ""}`}
-                  onClick={() =>
-                    copyToClipboard(card.expiry, card.number + "exp")
+                  className={
+                    "field-value copyable" +
+                    (copied === card.number + "exp" ? " copied" : "")
                   }
+                  onClick={() => copy(card.expiry, card.number + "exp")}
                 >
                   {card.expiry}
                 </span>
                 <span className="field-label">CVV</span>
                 <span
-                  className={`field-value copyable ${copied === card.number + "cvv" ? "copied" : ""}`}
-                  onClick={() => copyToClipboard(card.cvv, card.number + "cvv")}
+                  className={
+                    "field-value copyable" +
+                    (copied === card.number + "cvv" ? " copied" : "")
+                  }
+                  onClick={() => copy(card.cvv, card.number + "cvv")}
                 >
                   {card.cvv}
                 </span>
