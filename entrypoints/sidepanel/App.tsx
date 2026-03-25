@@ -47,6 +47,8 @@ const COUNTRIES = [
 ];
 
 const STORAGE_KEY = "paypal_sandbox_country";
+const BG_PAYPAL_KEY = "card_bg_paypal";
+const BG_STRIPE_KEY = "card_bg_stripe";
 
 function loadCountry(): string {
   return localStorage.getItem(STORAGE_KEY) ?? "US";
@@ -56,13 +58,29 @@ function saveCountry(code: string) {
   localStorage.setItem(STORAGE_KEY, code);
 }
 
+function loadBg(key: string): string {
+  return localStorage.getItem(key) ?? "";
+}
+
+function saveBg(key: string, value: string) {
+  localStorage.setItem(key, value);
+}
+
 // ── Country context ────────────────────────────────────────────
 const CountryCtx = createContext<{
   country: string;
   setCountry: (c: string) => void;
+  bgPaypal: string;
+  setBgPaypal: (v: string) => void;
+  bgStripe: string;
+  setBgStripe: (v: string) => void;
 }>({
   country: "US",
   setCountry: () => {},
+  bgPaypal: "",
+  setBgPaypal: () => {},
+  bgStripe: "",
+  setBgStripe: () => {},
 });
 
 // ── Luhn algorithm ─────────────────────────────────────────────
@@ -417,11 +435,106 @@ function copyText(text: string) {
 
 // ── Settings page ──────────────────────────────────────────────
 function SettingsPage() {
-  const { country, setCountry } = useContext(CountryCtx);
+  const { country, setCountry, bgPaypal, setBgPaypal, bgStripe, setBgStripe } =
+    useContext(CountryCtx);
+
+  const PRESETS = [
+    { label: "Blue", value: "/img/background/blue.png" },
+    { label: "Orange", value: "/img/background/orange.png" },
+    { label: "None", value: "" },
+  ];
+
+  const handleUpload = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    setter: (v: string) => void,
+    storageKey: string,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      setter(result);
+      saveBg(storageKey, result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const BgPicker = ({
+    label,
+    value,
+    setter,
+    storageKey,
+    accent,
+  }: {
+    label: string;
+    value: string;
+    setter: (v: string) => void;
+    storageKey: string;
+    accent: string;
+  }) => (
+    <div>
+      <div className="text-xs font-semibold text-slate-600 mb-2 flex items-center gap-2">
+        <span className={`w-2 h-2 rounded-full ${accent}`} />
+        {label}
+      </div>
+      <div className="rounded-xl overflow-hidden border border-slate-200 h-16 bg-slate-100 mb-2">
+        {value ? (
+          <img
+            src={value}
+            className="w-full h-full object-cover"
+            alt="bg preview"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-xs text-slate-400">
+            No background
+          </div>
+        )}
+      </div>
+      <div className="flex gap-1.5 mb-2">
+        {PRESETS.map((p) => (
+          <button
+            key={p.label}
+            onClick={() => {
+              setter(p.value);
+              saveBg(storageKey, p.value);
+            }}
+            className={`flex-1 text-xs py-1.5 rounded-lg border transition-colors cursor-pointer ${
+              value === p.value
+                ? "border-blue-500 bg-blue-50 text-blue-700 font-semibold"
+                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+            }`}
+          >
+            {p.label === "None" ? (
+              "None"
+            ) : (
+              <span className="flex items-center justify-center gap-1">
+                <img
+                  src={p.value}
+                  className="w-4 h-4 rounded object-cover inline"
+                  alt={p.label}
+                />
+                {p.label}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+      <label className="w-full text-center text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 cursor-pointer transition-colors block">
+        Custom upload...
+        <input
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => handleUpload(e, setter, storageKey)}
+        />
+      </label>
+    </div>
+  );
 
   return (
-    <div className="flex-1 overflow-y-auto p-4">
-      <h2 className="text-sm font-bold text-slate-700 mb-4">Settings</h2>
+    <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+      <h2 className="text-sm font-bold text-slate-700">Settings</h2>
 
       <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
         <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
@@ -444,7 +557,6 @@ function SettingsPage() {
             </option>
           ))}
         </select>
-
         <div className="mt-3 px-3 py-2 bg-slate-50 rounded-lg">
           <span className="text-xs text-slate-500">Selected: </span>
           <span className="text-xs font-mono font-bold text-slate-700">
@@ -454,6 +566,27 @@ function SettingsPage() {
             — {COUNTRIES.find((c) => c.code === country)?.name}
           </span>
         </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col gap-4">
+        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide">
+          Card Background
+        </label>
+        <BgPicker
+          label="PayPal Cards"
+          value={bgPaypal}
+          setter={setBgPaypal}
+          storageKey={BG_PAYPAL_KEY}
+          accent="bg-blue-600"
+        />
+        <div className="border-t border-slate-100" />
+        <BgPicker
+          label="Stripe Cards"
+          value={bgStripe}
+          setter={setBgStripe}
+          storageKey={BG_STRIPE_KEY}
+          accent="bg-purple-500"
+        />
       </div>
     </div>
   );
@@ -484,7 +617,7 @@ const CARD_GRADIENT: Record<string, string> = {
 type CardGroup = (typeof CARD_GROUPS)[0];
 
 function CardRow({ group }: { group: CardGroup }) {
-  const { country } = useContext(CountryCtx);
+  const { country, bgPaypal } = useContext(CountryCtx);
 
   const generate = useCallback(
     () => ({
@@ -537,11 +670,21 @@ function CardRow({ group }: { group: CardGroup }) {
 
   const gradient = CARD_GRADIENT[group.type] ?? "from-slate-700 to-slate-500";
   const brandIcon = CARD_BRAND_ICON[group.type];
+  const bgStyle = bgPaypal
+    ? {
+        backgroundImage: `url(${bgPaypal})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }
+    : {};
 
   return (
     <div className="rounded-2xl overflow-hidden shadow-md">
       {/* Card body */}
-      <div className={`bg-gradient-to-br ${gradient} px-5 py-4`}>
+      <div
+        className={`${bgPaypal ? "" : `bg-gradient-to-br ${gradient}`} px-5 py-4`}
+        style={bgStyle}
+      >
         {/* Top: actions */}
         <div className="flex justify-end gap-1.5 mb-3">
           <button
@@ -757,7 +900,7 @@ function ErrorTriggerRow({ item }: { item: (typeof ERROR_TRIGGERS)[0] }) {
 
 // ── StripeCardRow ──────────────────────────────────────────────
 function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
-  const { country } = useContext(CountryCtx);
+  const { country, bgStripe } = useContext(CountryCtx);
   const [card_data] = useState(() => ({
     number: card.number,
     expiry: randomExpiry(),
@@ -824,7 +967,18 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
   return (
     <div className="rounded-2xl overflow-hidden shadow-md">
       {/* Card body */}
-      <div className={`bg-gradient-to-br ${gradient} px-5 py-4`}>
+      <div
+        className={`${bgStripe ? "" : `bg-gradient-to-br ${gradient}`} px-5 py-4`}
+        style={
+          bgStripe
+            ? {
+                backgroundImage: `url(${bgStripe})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }
+            : {}
+        }
+      >
         {/* Top: desc badge + fill button */}
         <div className="flex justify-between items-start mb-3">
           <span
@@ -982,6 +1136,8 @@ function App() {
   const [activeTab, setActiveTab] = useState<Tab>("All");
   const [page, setPage] = useState<Page>("main");
   const [country, setCountry] = useState<string>(() => loadCountry());
+  const [bgPaypal, setBgPaypal] = useState<string>(() => loadBg(BG_PAYPAL_KEY));
+  const [bgStripe, setBgStripe] = useState<string>(() => loadBg(BG_STRIPE_KEY));
 
   const errorTestCard = useMemo(
     () => ({
@@ -998,7 +1154,16 @@ function App() {
       : CARD_GROUPS.filter((g) => TAB_FILTER[activeTab].includes(g.type));
 
   return (
-    <CountryCtx.Provider value={{ country, setCountry }}>
+    <CountryCtx.Provider
+      value={{
+        country,
+        setCountry,
+        bgPaypal,
+        setBgPaypal,
+        bgStripe,
+        setBgStripe,
+      }}
+    >
       <div className="min-h-screen bg-slate-100 flex flex-col">
         {/* Header */}
         <div className="bg-[#003087] px-4 py-3 flex items-center gap-3 shadow">

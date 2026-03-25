@@ -5,7 +5,7 @@ export default defineContentScript({
     "*://*.stripe.com/*",
     "*://localhost/*",
     "*://127.0.0.1/*",
-    "*://g-front.test/*",
+    "*://*.test/*",
   ],
   main() {
     let lastFocusedInput: HTMLInputElement | null = null;
