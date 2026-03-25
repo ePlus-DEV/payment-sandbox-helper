@@ -11,7 +11,16 @@ import {
   faArrowLeft,
   faRotate,
 } from "@fortawesome/free-solid-svg-icons";
-import { faPaypal, faStripeS } from "@fortawesome/free-brands-svg-icons";
+import {
+  faPaypal,
+  faStripeS,
+  faCcVisa,
+  faCcMastercard,
+  faCcAmex,
+  faCcDiscover,
+  faCcJcb,
+  faCcDinersClub,
+} from "@fortawesome/free-brands-svg-icons";
 
 // ── Countries ──────────────────────────────────────────────────
 const COUNTRIES = [
@@ -450,6 +459,27 @@ function SettingsPage() {
   );
 }
 
+// ── Card brand helpers ─────────────────────────────────────────
+const CARD_BRAND_ICON: Record<string, typeof faCcVisa> = {
+  visa: faCcVisa,
+  mastercard: faCcMastercard,
+  amex: faCcAmex,
+  discover: faCcDiscover,
+  jcb: faCcJcb,
+  diners: faCcDinersClub,
+};
+
+const CARD_GRADIENT: Record<string, string> = {
+  visa: "from-blue-800 to-blue-600",
+  mastercard: "from-orange-700 to-red-600",
+  amex: "from-teal-700 to-teal-500",
+  discover: "from-orange-500 to-yellow-500",
+  jcb: "from-green-700 to-green-500",
+  diners: "from-slate-700 to-slate-500",
+  maestro: "from-purple-700 to-purple-500",
+  cup: "from-red-700 to-red-500",
+};
+
 // ── CardRow ────────────────────────────────────────────────────
 type CardGroup = (typeof CARD_GROUPS)[0];
 
@@ -505,89 +535,110 @@ function CardRow({ group }: { group: CardGroup }) {
     }
   };
 
+  const gradient = CARD_GRADIENT[group.type] ?? "from-slate-700 to-slate-500";
+  const brandIcon = CARD_BRAND_ICON[group.type];
+
   return (
-    <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200">
-      {/* Card face */}
-      <div className="bg-gradient-to-br from-slate-700 to-slate-900 px-4 pt-4 pb-3 relative">
-        {/* Top row: label + country + actions */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-white uppercase tracking-widest opacity-90">
-              {group.label}
-            </span>
-            <span className="text-[10px] text-slate-300 bg-white/10 px-1.5 py-0.5 rounded font-mono">
-              {country}
-            </span>
-          </div>
-          <div className="flex gap-1.5">
-            <button
-              onClick={() => handleGenerate()}
-              title="Generate new card"
-              className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer border-0"
-            >
-              <FontAwesomeIcon
-                icon={faRotate}
-                className={spinning ? "animate-spin" : ""}
-                size="xs"
-              />
-            </button>
-            <button
-              onClick={fillCard}
-              disabled={filling}
-              className="text-xs font-bold px-3 py-1 rounded-lg bg-[#009cde] hover:bg-[#0070ba] text-white transition-colors disabled:opacity-50 cursor-pointer border-0"
-            >
-              {filling ? "..." : "Auto Fill"}
-            </button>
-          </div>
+    <div className="rounded-2xl overflow-hidden shadow-md">
+      {/* Card body */}
+      <div className={`bg-gradient-to-br ${gradient} px-5 py-4`}>
+        {/* Top: actions */}
+        <div className="flex justify-end gap-1.5 mb-3">
+          <button
+            onClick={() => handleGenerate()}
+            title="Generate new card"
+            className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/15 hover:bg-white/25 text-white transition-colors cursor-pointer border-0"
+          >
+            <FontAwesomeIcon
+              icon={faRotate}
+              className={spinning ? "animate-spin" : ""}
+              size="xs"
+            />
+          </button>
+          <button
+            onClick={fillCard}
+            disabled={filling}
+            className="text-xs font-bold px-3 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors disabled:opacity-50 cursor-pointer border-0"
+          >
+            {filling ? "..." : "Auto Fill"}
+          </button>
         </div>
 
         {/* Card number */}
         <button
           onClick={() => copy(card.number, "num")}
-          className={`w-full text-left font-mono text-base tracking-[0.2em] px-0 py-1 border-0 bg-transparent transition-colors cursor-pointer ${
+          className={`w-full text-left font-mono text-base tracking-[0.18em] px-0 py-0 border-0 bg-transparent transition-colors cursor-pointer mb-4 ${
             copied === "num"
               ? "text-green-300"
-              : "text-white hover:text-blue-200"
+              : "text-white/90 hover:text-white"
           }`}
         >
           {copied === "num"
-            ? "Copied!"
+            ? "✓ Copied!"
             : card.number.replace(/(.{4})/g, "$1 ").trim()}
         </button>
+
+        {/* Bottom: name + brand icon */}
+        <div className="flex items-end justify-between">
+          <div>
+            <div className="text-[10px] text-white/50 uppercase tracking-widest mb-0.5">
+              Cardholder
+            </div>
+            <div className="text-xs font-semibold text-white/90 uppercase tracking-wide">
+              {card.name}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-white/50 font-mono">
+              {country}
+            </span>
+            {brandIcon ? (
+              <FontAwesomeIcon
+                icon={brandIcon}
+                className="text-white/80"
+                size="2x"
+              />
+            ) : (
+              <span className="text-xs font-bold text-white/80 uppercase">
+                {group.label}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Bottom row: exp + cvv */}
-      <div className="flex bg-slate-50 border-t border-slate-200">
-        <button
-          onClick={() => copy(card.expiry, "exp")}
-          className={`flex-1 flex items-center gap-1.5 px-3 py-2 cursor-pointer transition-colors border-0 border-r border-slate-200 ${
-            copied === "exp"
-              ? "bg-green-50 text-green-700"
-              : "bg-transparent hover:bg-blue-50"
-          }`}
-        >
-          <span className="text-[10px] font-bold text-slate-400 uppercase">
-            Exp
-          </span>
-          <span className="font-mono text-xs text-slate-700 font-semibold">
+      {/* CVV strip */}
+      <div className="bg-gray-100 px-5 py-3 flex items-center justify-between">
+        <div>
+          <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest mb-1">
+            Expiry date
+          </div>
+          <button
+            onClick={() => copy(card.expiry, "exp")}
+            className={`font-mono text-sm font-bold border-0 bg-transparent cursor-pointer transition-colors p-0 ${
+              copied === "exp"
+                ? "text-green-600"
+                : "text-gray-800 hover:text-blue-600"
+            }`}
+          >
             {copied === "exp" ? "Copied!" : card.expiry}
-          </span>
-        </button>
-        <button
-          onClick={() => copy(card.cvv, "cvv")}
-          className={`flex-1 flex items-center gap-1.5 px-3 py-2 cursor-pointer transition-colors border-0 ${
-            copied === "cvv"
-              ? "bg-green-50 text-green-700"
-              : "bg-transparent hover:bg-blue-50"
-          }`}
-        >
-          <span className="text-[10px] font-bold text-slate-400 uppercase">
+          </button>
+        </div>
+        <div className="text-right">
+          <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest mb-1">
             CVV
-          </span>
-          <span className="font-mono text-xs text-slate-700 font-semibold">
+          </div>
+          <button
+            onClick={() => copy(card.cvv, "cvv")}
+            className={`font-mono text-sm font-bold border-0 bg-transparent cursor-pointer transition-colors p-0 ${
+              copied === "cvv"
+                ? "text-green-600"
+                : "text-gray-800 hover:text-blue-600"
+            }`}
+          >
             {copied === "cvv" ? "Copied!" : card.cvv}
-          </span>
-        </button>
+          </button>
+        </div>
       </div>
 
       {toast && (
@@ -747,86 +798,134 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
   const isDecline = card.category === "decline";
   const is3ds = card.category === "3ds";
 
+  // Stripe gradient theo category
+  const gradient = isDecline
+    ? "from-red-700 to-red-500"
+    : is3ds
+      ? "from-yellow-600 to-orange-500"
+      : "from-[#635bff] to-[#4f46e5]";
+
+  // Detect brand từ số thẻ
+  const num = card.number;
+  const brandIcon = num.startsWith("4")
+    ? faCcVisa
+    : num.startsWith("5") || num.startsWith("2")
+      ? faCcMastercard
+      : num.startsWith("3") && (num[1] === "4" || num[1] === "7")
+        ? faCcAmex
+        : num.startsWith("6011")
+          ? faCcDiscover
+          : num.startsWith("35")
+            ? faCcJcb
+            : num.startsWith("36")
+              ? faCcDinersClub
+              : null;
+
   return (
-    <div
-      className={`bg-white rounded-xl border p-3 shadow-sm ${isDecline ? "border-red-100" : is3ds ? "border-yellow-100" : "border-slate-200"}`}
-    >
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <span className="text-xs font-semibold text-slate-600 truncate">
-            {card.label}
-          </span>
+    <div className="rounded-2xl overflow-hidden shadow-md">
+      {/* Card body */}
+      <div className={`bg-gradient-to-br ${gradient} px-5 py-4`}>
+        {/* Top: desc badge + fill button */}
+        <div className="flex justify-between items-start mb-3">
           <span
-            className={`text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0 ${
+            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
               isDecline
-                ? "bg-red-100 text-red-600"
+                ? "bg-white/20 text-white"
                 : is3ds
-                  ? "bg-yellow-100 text-yellow-700"
-                  : "bg-green-100 text-green-700"
+                  ? "bg-white/20 text-white"
+                  : "bg-white/20 text-white"
             }`}
           >
             {card.desc}
           </span>
+          <button
+            onClick={fillCard}
+            disabled={filling}
+            className="text-xs font-bold px-3 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors disabled:opacity-50 cursor-pointer border-0"
+          >
+            {filling ? "..." : "Auto Fill"}
+          </button>
         </div>
+
+        {/* Card number */}
         <button
-          onClick={fillCard}
-          disabled={filling}
-          className={`text-xs font-semibold px-3 py-1 rounded-lg text-white transition-colors disabled:opacity-50 cursor-pointer shrink-0 ml-2 ${
-            isDecline
-              ? "bg-red-500 hover:bg-red-600"
-              : "bg-[#635bff] hover:bg-[#4f46e5]"
+          onClick={() => copy(card.number, "num")}
+          className={`w-full text-left font-mono text-base tracking-[0.18em] px-0 py-0 border-0 bg-transparent transition-colors cursor-pointer mb-4 ${
+            copied === "num"
+              ? "text-green-300"
+              : "text-white/90 hover:text-white"
           }`}
         >
-          {filling ? "..." : "Auto Fill"}
+          {copied === "num"
+            ? "✓ Copied!"
+            : card.number.replace(/(.{4})/g, "$1 ").trim()}
         </button>
+
+        {/* Bottom: label + brand */}
+        <div className="flex items-end justify-between">
+          <div>
+            <div className="text-[10px] text-white/50 uppercase tracking-widest mb-0.5">
+              Cardholder
+            </div>
+            <div className="text-xs font-semibold text-white/90 uppercase tracking-wide">
+              {card_data.name}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-white/50 font-mono">
+              {country}
+            </span>
+            {brandIcon ? (
+              <FontAwesomeIcon
+                icon={brandIcon}
+                className="text-white/80"
+                size="2x"
+              />
+            ) : (
+              <span className="text-xs font-bold text-white/80 uppercase">
+                {card.label}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
-      <button
-        onClick={() => copy(card.number, "num")}
-        className={`w-full text-left font-mono text-sm tracking-widest px-2 py-1.5 rounded-lg transition-colors mb-1 cursor-pointer border-0 ${
-          copied === "num"
-            ? "bg-green-100 text-green-700"
-            : "bg-slate-50 hover:bg-blue-50 text-slate-700"
-        }`}
-      >
-        {copied === "num" ? "Copied!" : card.number}
-      </button>
-
-      <div className="flex gap-2">
-        <button
-          onClick={() => copy(card_data.expiry, "exp")}
-          className={`flex-1 flex items-center gap-1.5 px-2 py-1 rounded-lg cursor-pointer transition-colors border-0 ${
-            copied === "exp"
-              ? "bg-green-100 text-green-700"
-              : "bg-slate-50 hover:bg-blue-50"
-          }`}
-        >
-          <span className="text-[10px] font-bold text-slate-400 uppercase">
-            Exp
-          </span>
-          <span className="font-mono text-xs text-slate-600">
+      {/* Expiry + CVV strip */}
+      <div className="bg-gray-100 px-5 py-3 flex items-center justify-between">
+        <div>
+          <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest mb-1">
+            Expiry date
+          </div>
+          <button
+            onClick={() => copy(card_data.expiry, "exp")}
+            className={`font-mono text-sm font-bold border-0 bg-transparent cursor-pointer transition-colors p-0 ${
+              copied === "exp"
+                ? "text-green-600"
+                : "text-gray-800 hover:text-blue-600"
+            }`}
+          >
             {copied === "exp" ? "Copied!" : card_data.expiry}
-          </span>
-        </button>
-        <button
-          onClick={() => copy(card_data.cvv, "cvv")}
-          className={`flex-1 flex items-center gap-1.5 px-2 py-1 rounded-lg cursor-pointer transition-colors border-0 ${
-            copied === "cvv"
-              ? "bg-green-100 text-green-700"
-              : "bg-slate-50 hover:bg-blue-50"
-          }`}
-        >
-          <span className="text-[10px] font-bold text-slate-400 uppercase">
+          </button>
+        </div>
+        <div className="text-right">
+          <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest mb-1">
             CVC
-          </span>
-          <span className="font-mono text-xs text-slate-600">
+          </div>
+          <button
+            onClick={() => copy(card_data.cvv, "cvv")}
+            className={`font-mono text-sm font-bold border-0 bg-transparent cursor-pointer transition-colors p-0 ${
+              copied === "cvv"
+                ? "text-green-600"
+                : "text-gray-800 hover:text-blue-600"
+            }`}
+          >
             {copied === "cvv" ? "Copied!" : card_data.cvv}
-          </span>
-        </button>
+          </button>
+        </div>
       </div>
 
       {toast && (
-        <div className="mt-2 text-center text-xs font-medium text-green-700 bg-green-50 rounded-lg py-1">
+        <div className="text-center text-xs font-medium text-green-700 bg-green-50 py-1.5">
           {toast}
         </div>
       )}
