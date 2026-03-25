@@ -5,6 +5,13 @@ import {
   createContext,
   useContext,
 } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faGear,
+  faArrowLeft,
+  faRotate,
+} from "@fortawesome/free-solid-svg-icons";
+import { faPaypal, faStripeS } from "@fortawesome/free-brands-svg-icons";
 
 // ── Countries ──────────────────────────────────────────────────
 const COUNTRIES = [
@@ -460,9 +467,16 @@ function CardRow({ group }: { group: CardGroup }) {
   );
 
   const [card, setCard] = useState(() => generate());
+  const [spinning, setSpinning] = useState(false);
   const [copied, setCopied] = useState("");
   const [filling, setFilling] = useState(false);
   const [toast, setToast] = useState("");
+
+  const handleGenerate = () => {
+    setCard(generate());
+    setSpinning(true);
+    setTimeout(() => setSpinning(false), 600);
+  };
 
   const copy = (text: string, key: string) => {
     copyText(text);
@@ -504,11 +518,14 @@ function CardRow({ group }: { group: CardGroup }) {
         </div>
         <div className="flex gap-1.5">
           <button
-            onClick={() => setCard(generate())}
+            onClick={() => handleGenerate()}
             title="Generate new card"
             className="text-xs px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer border-0"
           >
-            ↻
+            <FontAwesomeIcon
+              icon={faRotate}
+              className={spinning ? "animate-spin" : ""}
+            />
           </button>
           <button
             onClick={fillCard}
@@ -590,8 +607,15 @@ function ErrorTriggerRow({ item }: { item: (typeof ERROR_TRIGGERS)[0] }) {
   );
 
   const [testCard, setTestCard] = useState(() => genTestCard());
+  const [spinningErr, setSpinningErr] = useState(false);
   const [copied, setCopied] = useState(false);
   const [filling, setFilling] = useState(false);
+
+  const handleGenerateErr = () => {
+    setTestCard(genTestCard());
+    setSpinningErr(true);
+    setTimeout(() => setSpinningErr(false), 600);
+  };
   const [toast, setToast] = useState("");
 
   const copy = () => {
@@ -631,11 +655,14 @@ function ErrorTriggerRow({ item }: { item: (typeof ERROR_TRIGGERS)[0] }) {
           {item.code}
         </span>
         <button
-          onClick={() => setTestCard(genTestCard())}
+          onClick={() => handleGenerateErr()}
           title="Generate new card"
           className="text-xs px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer border-0 shrink-0"
         >
-          ↻
+          <FontAwesomeIcon
+            icon={faRotate}
+            className={spinningErr ? "animate-spin" : ""}
+          />
         </button>
         <button
           onClick={fillError}
@@ -871,9 +898,10 @@ function App() {
             <>
               <button
                 onClick={() => setPage("main")}
-                className="text-white text-sm font-semibold flex items-center gap-1 cursor-pointer border-0 bg-transparent hover:text-blue-200 transition-colors shrink-0"
+                className="text-white text-sm font-semibold flex items-center gap-1.5 cursor-pointer border-0 bg-transparent hover:text-blue-200 transition-colors shrink-0"
               >
-                ← Back
+                <FontAwesomeIcon icon={faArrowLeft} />
+                Back
               </button>
               <span className="text-white font-bold text-sm flex-1">
                 Settings
@@ -899,7 +927,7 @@ function App() {
                 className="text-lg px-2 py-1 rounded-lg transition-colors cursor-pointer border-0 bg-[#004ab3] text-white hover:bg-[#0057cc]"
                 title="Settings"
               >
-                ⚙
+                <FontAwesomeIcon icon={faGear} />
               </button>
             </>
           )}
@@ -913,23 +941,25 @@ function App() {
             <div className="flex bg-white border-b-2 border-slate-200">
               <button
                 onClick={() => setProvider("paypal")}
-                className={`flex-1 py-2.5 text-sm font-bold transition-colors cursor-pointer border-0 ${
+                className={`flex-1 py-2.5 text-sm font-bold transition-colors cursor-pointer border-0 flex items-center justify-center gap-2 ${
                   provider === "paypal"
                     ? "text-[#003087] border-b-2 border-[#003087] bg-blue-50"
                     : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
                 }`}
               >
-                🅿 PayPal
+                <FontAwesomeIcon icon={faPaypal} />
+                PayPal
               </button>
               <button
                 onClick={() => setProvider("stripe")}
-                className={`flex-1 py-2.5 text-sm font-bold transition-colors cursor-pointer border-0 ${
+                className={`flex-1 py-2.5 text-sm font-bold transition-colors cursor-pointer border-0 flex items-center justify-center gap-2 ${
                   provider === "stripe"
                     ? "text-[#635bff] border-b-2 border-[#635bff] bg-purple-50"
                     : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
                 }`}
               >
-                ⚡ Stripe
+                <FontAwesomeIcon icon={faStripeS} />
+                Stripe
               </button>
             </div>
 
