@@ -135,9 +135,20 @@ function buildMenus() {
 }
 
 export default defineBackground(() => {
-  // Mở sidebar khi click icon extension
+  // Toggle sidebar khi click icon extension
+  const openWindows = new Set<number>();
+  browser.sidePanel.setPanelBehavior({ openPanelOnActionClick: false });
   browser.action.onClicked.addListener((tab) => {
-    browser.sidePanel.open({ windowId: tab.windowId });
+    const winId = tab.windowId!;
+    if (openWindows.has(winId)) {
+      openWindows.delete(winId);
+      // Chrome không có API đóng trực tiếp, dùng setOptions để disable rồi re-enable
+      browser.sidePanel.setOptions({ enabled: false });
+      browser.sidePanel.setOptions({ enabled: true });
+    } else {
+      openWindows.add(winId);
+      browser.sidePanel.open({ windowId: winId });
+    }
   });
 
   buildMenus();
