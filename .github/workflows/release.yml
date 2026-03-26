@@ -47,9 +47,6 @@ jobs:
       - name: Enable Corepack (Yarn 4)
         run: corepack enable
 
-      - name: Enable Corepack (Yarn 4)
-        run: corepack enable
-
       - name: Install dependencies
         run: yarn install --immutable --mode=skip-build
 
