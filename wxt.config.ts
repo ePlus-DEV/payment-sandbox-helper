@@ -10,7 +10,6 @@ export default defineConfig({
     name: "__MSG_extName__",
     description: "__MSG_extDescription__",
     default_locale: "en",
-    version: "1.0.0",
     permissions: [
       "activeTab",
       "scripting",
@@ -18,6 +17,11 @@ export default defineConfig({
       "contextMenus",
       "storage",
     ],
+    browser_specific_settings: {
+      gecko: {
+        id: "{6bc5b0a9-991e-4b7b-8ab8-ef204f8c953e}",
+      },
+    },
     side_panel: {
       default_path: "sidepanel.html",
     },
