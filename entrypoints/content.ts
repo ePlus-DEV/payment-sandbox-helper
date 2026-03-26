@@ -190,19 +190,18 @@ async function fillCardForm(card: CardData) {
     ]);
     await fillInputAsync(countryEl, card.country);
 
-    const countrySelect = document.querySelector<HTMLSelectElement>(
-      'select[name*="country" i], select[id*="country" i], select[autocomplete="country"]',
-    );
+    const countrySelect = findSelect([
+      'select[name*="country" i]',
+      'select[id*="country" i]',
+      'select[autocomplete="country"]',
+    ]);
     if (countrySelect) {
       const opt = Array.from(countrySelect.options).find(
         (o) =>
           o.value.toUpperCase() === card.country ||
           o.text.toUpperCase().includes(card.country!.toUpperCase()),
       );
-      if (opt) {
-        countrySelect.value = opt.value;
-        countrySelect.dispatchEvent(new Event("change", { bubbles: false }));
-      }
+      if (opt) fillSelect(countrySelect, opt.value);
     }
   }
 }
