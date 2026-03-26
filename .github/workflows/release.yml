@@ -39,14 +39,16 @@ jobs:
       - name: Ensure Yarn cache directory exists
         run: mkdir -p ~/Library/Caches/Yarn/v6
 
-      - name: Setup Node.js with Yarn cache
+      - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: 24.x
-          cache: "yarn"
+
+      - name: Enable Corepack (Yarn 4)
+        run: corepack enable
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile --ignore-scripts --ignore-engines
+        run: yarn install --immutable --mode=skip-build
 
       - name: Prepare WXT types
         run: yarn wxt prepare

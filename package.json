@@ -3,6 +3,7 @@
   "description": "Fill PayPal & Stripe test cards instantly for sandbox testing",
   "private": true,
   "version": "1.0.0",
+  "packageManager": "yarn@4.10.3",
   "type": "module",
   "scripts": {
     "dev": "wxt",
