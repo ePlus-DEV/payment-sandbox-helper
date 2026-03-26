@@ -39,11 +39,13 @@ jobs:
       - name: Ensure Yarn cache directory exists
         run: mkdir -p ~/Library/Caches/Yarn/v6
 
-      - name: Setup Node.js with Yarn cache
+      - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: 24.x
-          cache: "yarn"
+
+      - name: Enable Corepack (Yarn 4)
+        run: corepack enable
 
       - name: Enable Corepack (Yarn 4)
         run: corepack enable
