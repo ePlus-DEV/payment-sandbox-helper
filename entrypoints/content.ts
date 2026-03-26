@@ -6,6 +6,7 @@ export default defineContentScript({
     "*://localhost/*",
     "*://127.0.0.1/*",
     "*://*.test/*",
+    "*://*.appspot.com/*",
   ],
   main() {
     let lastFocusedInput: HTMLInputElement | null = null;
