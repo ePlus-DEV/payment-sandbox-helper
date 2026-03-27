@@ -137,19 +137,27 @@ function buildMenus() {
 export default defineBackground(() => {
   // Toggle sidebar khi click icon extension
   const openWindows = new Set<number>();
-  browser.sidePanel.setPanelBehavior({ openPanelOnActionClick: false });
-  browser.action.onClicked.addListener((tab) => {
-    const winId = tab.windowId!;
-    if (openWindows.has(winId)) {
-      openWindows.delete(winId);
-      // Chrome không có API đóng trực tiếp, dùng setOptions để disable rồi re-enable
-      browser.sidePanel.setOptions({ enabled: false });
-      browser.sidePanel.setOptions({ enabled: true });
-    } else {
-      openWindows.add(winId);
-      browser.sidePanel.open({ windowId: winId });
-    }
-  });
+
+  if (import.meta.env.BROWSER === "firefox") {
+    // Firefox dùng sidebarAction API
+    browser.action.onClicked.addListener(() => {
+      (browser as any).sidebarAction.toggle();
+    });
+  } else {
+    // Chrome dùng sidePanel API
+    browser.sidePanel.setPanelBehavior({ openPanelOnActionClick: false });
+    browser.action.onClicked.addListener((tab) => {
+      const winId = tab.windowId!;
+      if (openWindows.has(winId)) {
+        openWindows.delete(winId);
+        browser.sidePanel.setOptions({ enabled: false });
+        browser.sidePanel.setOptions({ enabled: true });
+      } else {
+        openWindows.add(winId);
+        browser.sidePanel.open({ windowId: winId });
+      }
+    });
+  }
 
   buildMenus();
 
