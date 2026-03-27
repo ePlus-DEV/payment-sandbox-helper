@@ -5,7 +5,6 @@ export default defineContentScript({
     "*://*.stripe.com/*",
     "*://localhost/*",
     "*://127.0.0.1/*",
-    "*://*.test/*",
     "*://*.appspot.com/*",
   ],
   main() {
