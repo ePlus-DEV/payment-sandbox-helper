@@ -1,6 +1,6 @@
 {
   "name": "sandbox-pay",
-  "description": "Fill PayPal & Stripe test cards instantly for sandbox testing",
+  "description": "__MSG_extDescription__",
   "private": true,
   "version": "1.0.0",
   "packageManager": "yarn@4.10.3",

@@ -6,25 +6,34 @@ export default defineConfig({
   vite: () => ({
     plugins: [tailwindcss()],
   }),
-  manifest: {
+  manifest: ({ browser }) => ({
     name: "__MSG_extName__",
     description: "__MSG_extDescription__",
     default_locale: "en",
     permissions: [
       "activeTab",
       "scripting",
-      "sidePanel",
+      ...(browser === "chrome" ? ["sidePanel" as const] : []),
       "contextMenus",
       "storage",
     ],
     browser_specific_settings: {
       gecko: {
         id: "{6bc5b0a9-991e-4b7b-8ab8-ef204f8c953e}",
+        // @ts-ignore - WXT doesn't support this field yet
+        data_collection_permissions: {
+          required: ["none"],
+        },
       },
     },
-    side_panel: {
-      default_path: "sidepanel.html",
-    },
+    ...(browser === "chrome"
+      ? { side_panel: { default_path: "sidepanel.html" } }
+      : {
+          sidebar_action: {
+            default_panel: "sidepanel.html",
+            default_width: 400,
+          },
+        }),
     action: {},
-  },
+  }),
 });
