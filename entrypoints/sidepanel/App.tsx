@@ -4,6 +4,7 @@ import {
   useCallback,
   createContext,
   useContext,
+  useEffect,
 } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -24,6 +25,13 @@ import {
   faCcJcb,
   faCcDinersClub,
 } from "@fortawesome/free-brands-svg-icons";
+
+import {
+  countryStorage,
+  cardholderStorage,
+  bgPaypalStorage,
+  bgStripeStorage,
+} from "../../utils/storage";
 
 const m = (key: Parameters<typeof browser.i18n.getMessage>[0]) =>
   browser.i18n.getMessage(key);
@@ -56,35 +64,6 @@ const COUNTRIES = [
   { code: "IT", name: "Italy" },
   { code: "AT", name: "Austria" },
 ];
-
-const STORAGE_KEY = "paypal_sandbox_country";
-const BG_PAYPAL_KEY = "card_bg_paypal";
-const BG_STRIPE_KEY = "card_bg_stripe";
-const CARDHOLDER_KEY = "sandbox_pay_cardholder";
-
-function loadCountry(): string {
-  return localStorage.getItem(STORAGE_KEY) ?? "US";
-}
-
-function saveCountry(code: string) {
-  localStorage.setItem(STORAGE_KEY, code);
-}
-
-function loadCardholder(): string {
-  return localStorage.getItem(CARDHOLDER_KEY) ?? "Test User";
-}
-
-function saveCardholder(name: string) {
-  localStorage.setItem(CARDHOLDER_KEY, name);
-}
-
-function loadBg(key: string): string {
-  return localStorage.getItem(key) ?? "";
-}
-
-function saveBg(key: string, value: string) {
-  localStorage.setItem(key, value);
-}
 
 // ── Country context ────────────────────────────────────────────
 const CountryCtx = createContext<{
@@ -492,7 +471,7 @@ function SettingsPage() {
   const [nameSaved, setNameSaved] = useState(false);
 
   const handleSaveName = () => {
-    saveCardholder(cardholderName);
+    setCardholderName(cardholderName);
     setNameSaved(true);
     setTimeout(() => setNameSaved(false), 1500);
   };
@@ -506,15 +485,12 @@ function SettingsPage() {
   const handleUpload = (
     e: React.ChangeEvent<HTMLInputElement>,
     setter: (v: string) => void,
-    storageKey: string,
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      const result = reader.result as string;
-      setter(result);
-      saveBg(storageKey, result);
+      setter(reader.result as string);
     };
     reader.readAsDataURL(file);
   };
@@ -523,13 +499,11 @@ function SettingsPage() {
     label,
     value,
     setter,
-    storageKey,
     accent,
   }: {
     label: string;
     value: string;
     setter: (v: string) => void;
-    storageKey: string;
     accent: string;
   }) => (
     <div>
@@ -556,7 +530,6 @@ function SettingsPage() {
             key={p.label}
             onClick={() => {
               setter(p.value);
-              saveBg(storageKey, p.value);
             }}
             className={`flex-1 text-xs py-1.5 rounded-lg border transition-colors cursor-pointer ${
               value === p.value
@@ -585,7 +558,7 @@ function SettingsPage() {
           type="file"
           accept="image/*"
           className="hidden"
-          onChange={(e) => handleUpload(e, setter, storageKey)}
+          onChange={(e) => handleUpload(e, setter)}
         />
       </label>
     </div>
@@ -604,7 +577,6 @@ function SettingsPage() {
           value={country}
           onChange={(e) => {
             setCountry(e.target.value);
-            saveCountry(e.target.value);
           }}
           className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#009cde] cursor-pointer"
         >
@@ -670,7 +642,6 @@ function SettingsPage() {
           label={m("paypalCards")}
           value={bgPaypal}
           setter={setBgPaypal}
-          storageKey={BG_PAYPAL_KEY}
           accent="bg-blue-600"
         />
         <div className="border-t border-slate-100" />
@@ -678,7 +649,6 @@ function SettingsPage() {
           label={m("stripeCards")}
           value={bgStripe}
           setter={setBgStripe}
-          storageKey={BG_STRIPE_KEY}
           accent="bg-purple-500"
         />
       </div>
@@ -1255,16 +1225,38 @@ function App() {
   const [provider, setProvider] = useState<Provider>("paypal");
   const [activeTab, setActiveTab] = useState<Tab>("All");
   const [page, setPage] = useState<Page>("main");
-  const [country, setCountry] = useState<string>(() => loadCountry());
-  const [bgPaypal, setBgPaypal] = useState<string>(() => loadBg(BG_PAYPAL_KEY));
-  const [bgStripe, setBgStripe] = useState<string>(() => loadBg(BG_STRIPE_KEY));
-  const [cardholderName, setCardholderNameState] = useState<string>(() =>
-    loadCardholder(),
-  );
+  const [country, setCountryState] = useState<string>("US");
+  const [bgPaypal, setBgPaypalState] = useState<string>("");
+  const [bgStripe, setBgStripeState] = useState<string>("");
+  const [cardholderName, setCardholderNameState] =
+    useState<string>("Test User");
+
+  // Load from WXT storage on mount
+  useEffect(() => {
+    countryStorage.getValue().then(setCountryState);
+    cardholderStorage.getValue().then(setCardholderNameState);
+    bgPaypalStorage.getValue().then(setBgPaypalState);
+    bgStripeStorage.getValue().then(setBgStripeState);
+  }, []);
+
+  const setCountry = (v: string) => {
+    setCountryState(v);
+    countryStorage.setValue(v);
+  };
+
+  const setBgPaypal = (v: string) => {
+    setBgPaypalState(v);
+    bgPaypalStorage.setValue(v);
+  };
+
+  const setBgStripe = (v: string) => {
+    setBgStripeState(v);
+    bgStripeStorage.setValue(v);
+  };
 
   const setCardholderName = (n: string) => {
     setCardholderNameState(n);
-    saveCardholder(n);
+    cardholderStorage.setValue(n);
   };
 
   const errorTestCard = useMemo(
