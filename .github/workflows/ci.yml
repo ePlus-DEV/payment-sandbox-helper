@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: Type Check, Test & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.x
+
+      - name: Enable Corepack (Yarn 4)
+        run: corepack enable
+
+      - name: Enable Corepack (Yarn 4)
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable --mode=skip-build
+
+      - name: Prepare WXT types
+        run: yarn wxt prepare
+
+      - name: Type check
+        run: yarn compile
+
+      # - name: Run tests with coverage
+      #   run: yarn test:coverage
+
+      # - name: Upload coverage report
+      #   uses: actions/upload-artifact@v7
+      #   if: success()
+      #   with:
+      #     name: coverage-report
+      #     path: coverage/
+      #     retention-days: 7
+
+      - name: Build extension
+        run: yarn build

@@ -1,0 +1,58 @@
+{
+  "extName": { "message": "Sandbox Pay" },
+  "appName": { "message": "Sandbox Pay" },
+  "extDescription": {
+    "message": "Fill PayPal & Stripe test cards instantly for sandbox testing"
+  },
+  "appDesc": { "message": "Click to copy · Auto Fill to fill form" },
+  "settings": { "message": "Settings" },
+  "back": { "message": "Back" },
+  "autoFill": { "message": "Auto Fill" },
+  "filling": { "message": "Filling..." },
+  "filled": { "message": "Filled ✓" },
+  "noForm": { "message": "Form not found" },
+  "copied": { "message": "Copied!" },
+  "copiedCheck": { "message": "✓ Copied!" },
+  "country": { "message": "Country / Region" },
+  "countryDesc": {
+    "message": "Used for all cards when Auto Fill into billing address."
+  },
+  "selected": { "message": "Selected" },
+  "cardBackground": { "message": "Card Background" },
+  "paypalCards": { "message": "PayPal Cards" },
+  "stripeCards": { "message": "Stripe Cards" },
+  "noBackground": { "message": "No background" },
+  "customUpload": { "message": "Custom upload..." },
+  "remove": { "message": "Remove" },
+  "language": { "message": "Language" },
+  "languageDesc": {
+    "message": "Language follows your browser/system language setting."
+  },
+  "cvc": { "message": "CVC" },
+  "tabAll": { "message": "All" },
+  "tabVisa": { "message": "Visa" },
+  "tabMastercard": { "message": "Mastercard" },
+  "tabAmex": { "message": "Amex" },
+  "tabOthers": { "message": "Others" },
+  "tabErrors": { "message": "Errors" },
+  "catAll": { "message": "All" },
+  "catSuccess": { "message": "Success" },
+  "catDecline": { "message": "Decline" },
+  "cat3DS": { "message": "3DS" },
+  "cardholder": { "message": "Cardholder" },
+  "editName": { "message": "Edit name" },
+  "cardholderPlaceholder": { "message": "Cardholder name" },
+  "defaultCardholderName": { "message": "Default Cardholder Name" },
+  "defaultCardholderNameDesc": {
+    "message": "Applied to all cards when generating."
+  },
+  "expiryDate": { "message": "Expiry date" },
+  "cvv": { "message": "CVV" },
+  "nameOnCard": { "message": "Name on Card" },
+  "errorNote": { "message": "Enter trigger into field" },
+  "errorNoteField": { "message": "Name on Card" },
+  "errorNoteDesc": { "message": "Use Visa card:" },
+  "fill": { "message": "Fill" },
+  "generateNew": { "message": "Generate new card" },
+  "testUser": { "message": "Test User" }
+}

@@ -1,0 +1,58 @@
+{
+  "extName": { "message": "Sandbox Pay" },
+  "appName": { "message": "Sandbox Pay" },
+  "extDescription": {
+    "message": "Điền thẻ test PayPal & Stripe nhanh chóng cho sandbox"
+  },
+  "appDesc": { "message": "Click để copy · Auto Fill để điền form" },
+  "settings": { "message": "Cài đặt" },
+  "back": { "message": "Quay lại" },
+  "autoFill": { "message": "Tự điền" },
+  "filling": { "message": "Đang điền..." },
+  "filled": { "message": "Đã điền ✓" },
+  "noForm": { "message": "Không tìm thấy form" },
+  "copied": { "message": "Đã copy!" },
+  "copiedCheck": { "message": "✓ Đã copy!" },
+  "country": { "message": "Quốc gia / Khu vực" },
+  "countryDesc": {
+    "message": "Dùng chung cho tất cả card khi Auto Fill vào billing address."
+  },
+  "selected": { "message": "Đã chọn" },
+  "cardBackground": { "message": "Ảnh nền thẻ" },
+  "paypalCards": { "message": "Thẻ PayPal" },
+  "stripeCards": { "message": "Thẻ Stripe" },
+  "noBackground": { "message": "Chưa có ảnh nền" },
+  "customUpload": { "message": "Tải ảnh lên..." },
+  "remove": { "message": "Xóa" },
+  "language": { "message": "Ngôn ngữ" },
+  "languageDesc": {
+    "message": "Ngôn ngữ theo cài đặt trình duyệt/hệ thống của bạn."
+  },
+  "cvc": { "message": "CVC" },
+  "tabAll": { "message": "Tất cả" },
+  "tabVisa": { "message": "Visa" },
+  "tabMastercard": { "message": "Mastercard" },
+  "tabAmex": { "message": "Amex" },
+  "tabOthers": { "message": "Khác" },
+  "tabErrors": { "message": "Lỗi" },
+  "catAll": { "message": "Tất cả" },
+  "catSuccess": { "message": "Thành công" },
+  "catDecline": { "message": "Từ chối" },
+  "cat3DS": { "message": "3DS" },
+  "cardholder": { "message": "Chủ thẻ" },
+  "editName": { "message": "Sửa tên" },
+  "cardholderPlaceholder": { "message": "Tên chủ thẻ" },
+  "defaultCardholderName": { "message": "Tên chủ thẻ mặc định" },
+  "defaultCardholderNameDesc": {
+    "message": "Áp dụng cho tất cả card khi tạo mới."
+  },
+  "expiryDate": { "message": "Ngày hết hạn" },
+  "cvv": { "message": "CVV" },
+  "nameOnCard": { "message": "Tên trên thẻ" },
+  "errorNote": { "message": "Điền trigger vào field" },
+  "errorNoteField": { "message": "Name on Card" },
+  "errorNoteDesc": { "message": "Dùng thẻ Visa:" },
+  "fill": { "message": "Điền" },
+  "generateNew": { "message": "Tạo thẻ mới" },
+  "testUser": { "message": "Test User" }
+}

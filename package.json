@@ -1,8 +1,9 @@
 {
-  "name": "payment-sandbox-helper",
-  "description": "manifest.json description",
+  "name": "sandbox-pay",
+  "description": "__MSG_extDescription__",
   "private": true,
   "version": "1.0.0",
+  "packageManager": "yarn@4.10.3",
   "type": "module",
   "scripts": {
     "dev": "wxt",
@@ -15,13 +16,19 @@
     "postinstall": "wxt prepare"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^7.2.0",
+    "@fortawesome/free-brands-svg-icons": "^7.2.0",
+    "@fortawesome/free-solid-svg-icons": "^7.2.0",
+    "@fortawesome/react-fontawesome": "^3.3.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.2.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@wxt-dev/module-react": "^1.1.5",
+    "tailwindcss": "^4.2.2",
     "typescript": "^5.9.3",
     "vite": "^8.0.2",
     "wxt": "^0.20.20"
