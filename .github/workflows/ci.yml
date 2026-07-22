@@ -37,7 +37,16 @@ jobs:
         run: yarn wxt prepare
 
       - name: Type check
-        run: yarn compile
+        id: typecheck
+        run: yarn compile 2>&1 | tee typecheck.log
+
+      - name: Upload type-check errors
+        if: failure() && steps.typecheck.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: typecheck-log
+          path: typecheck.log
+          retention-days: 3
 
       - name: Build Chrome extension
         run: yarn build
