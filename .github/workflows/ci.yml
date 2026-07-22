@@ -9,9 +9,13 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ci:
-    name: Type Check, Test & Build
+    name: Type Check & Build
     runs-on: ubuntu-latest
 
     steps:
@@ -26,9 +30,6 @@ jobs:
       - name: Enable Corepack (Yarn 4)
         run: corepack enable
 
-      - name: Enable Corepack (Yarn 4)
-        run: corepack enable
-
       - name: Install dependencies
         run: yarn install --immutable --mode=skip-build
 
@@ -38,16 +39,8 @@ jobs:
       - name: Type check
         run: yarn compile
 
-      # - name: Run tests with coverage
-      #   run: yarn test:coverage
-
-      # - name: Upload coverage report
-      #   uses: actions/upload-artifact@v7
-      #   if: success()
-      #   with:
-      #     name: coverage-report
-      #     path: coverage/
-      #     retention-days: 7
-
-      - name: Build extension
+      - name: Build Chrome extension
         run: yarn build
+
+      - name: Build Firefox extension
+        run: yarn build:firefox
