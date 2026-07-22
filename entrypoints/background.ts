@@ -251,10 +251,6 @@ export default defineBackground(() => {
 
   void buildMenus();
 
-  browser.runtime.onInstalled.addListener(() => {
-    void buildMenus();
-  });
-
   browser.contextMenus.onClicked.addListener((info, tab) => {
     void handleContextMenuClick(info, tab);
   });
