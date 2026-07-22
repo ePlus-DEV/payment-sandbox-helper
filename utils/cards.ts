@@ -6,6 +6,22 @@ export interface CardInfo {
   type: string;
 }
 
+function randomInt(maxExclusive: number): number {
+  if (!Number.isSafeInteger(maxExclusive) || maxExclusive <= 0) {
+    throw new RangeError("maxExclusive must be a positive safe integer");
+  }
+
+  const range = 0x1_0000_0000;
+  const rejectionLimit = range - (range % maxExclusive);
+  const values = new Uint32Array(1);
+
+  do {
+    globalThis.crypto.getRandomValues(values);
+  } while (values[0] >= rejectionLimit);
+
+  return values[0] % maxExclusive;
+}
+
 // Luhn
 function luhnChecksum(num: string): number {
   let sum = 0;
@@ -24,7 +40,7 @@ function luhnChecksum(num: string): number {
 
 function generateLuhn(prefix: string, length: number): string {
   let num = prefix;
-  while (num.length < length - 1) num += Math.floor(Math.random() * 10);
+  while (num.length < length - 1) num += randomInt(10);
   const check = (10 - luhnChecksum(num + "0")) % 10;
   return num + check;
 }
@@ -48,26 +64,28 @@ const CARD_SPECS: Record<string, { prefixes: string[]; length: number }> = {
 export function generateCardNumber(type: string): string {
   const spec = CARD_SPECS[type];
   if (!spec) return "4242424242424242";
-  const prefix =
-    spec.prefixes[Math.floor(Math.random() * spec.prefixes.length)];
+  const prefix = spec.prefixes[randomInt(spec.prefixes.length)];
   return generateLuhn(prefix, spec.length);
 }
 
 export function randomCvv(amex = false): string {
-  const len = amex ? 4 : 3;
-  return String(Math.floor(Math.random() * Math.pow(10, len))).padStart(
-    len,
-    "0",
-  );
+  const length = amex ? 4 : 3;
+  let result = "";
+
+  for (let index = 0; index < length; index++) {
+    result += randomInt(10);
+  }
+
+  return result;
 }
 
 export function randomExpiry(): string {
-  const year = new Date().getFullYear() + Math.floor(Math.random() * 5) + 1;
-  const month = Math.floor(Math.random() * 12) + 1;
+  const year = new Date().getFullYear() + randomInt(5) + 1;
+  const month = randomInt(12) + 1;
   return `${String(month).padStart(2, "0")}/${year}`;
 }
 
-// PayPal static cards (dùng cho context menu)
+// PayPal static cards (used by the context menu)
 export const PAYPAL_STATIC_CARDS: CardInfo[] = [
   {
     label: "Visa",
@@ -92,7 +110,7 @@ export const PAYPAL_STATIC_CARDS: CardInfo[] = [
   },
 ];
 
-// Stripe static cards (dùng cho context menu)
+// Stripe static cards (used by the context menu)
 export const STRIPE_STATIC_CARDS: CardInfo[] = [
   {
     label: "Visa",
