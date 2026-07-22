@@ -10,6 +10,15 @@ interface CurrentCard {
   country: string;
 }
 
+interface ContextMenuClickInfo {
+  menuItemId: string | number;
+  frameId?: number;
+}
+
+interface TabInfo {
+  id?: number;
+}
+
 // Keep the latest selected card for the individual context-menu actions.
 let currentCard: CurrentCard = {
   number: generateCardNumber("visa"),
@@ -176,8 +185,8 @@ async function sendMessageToTab(
 }
 
 async function handleContextMenuClick(
-  info: Browser.contextMenus.OnClickData,
-  tab?: Browser.tabs.Tab,
+  info: ContextMenuClickInfo,
+  tab?: TabInfo,
 ) {
   if (tab?.id == null) return;
 
