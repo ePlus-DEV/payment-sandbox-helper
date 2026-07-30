@@ -38,6 +38,7 @@ jobs:
 
       - name: Type check
         id: typecheck
+        shell: bash
         run: yarn compile 2>&1 | tee typecheck.log
 
       - name: Upload type-check errors
