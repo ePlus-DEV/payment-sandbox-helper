@@ -91,7 +91,7 @@ function luhnChecksum(num: string): number {
   let sum = 0;
   let isEven = false;
   for (let i = num.length - 1; i >= 0; i--) {
-    let digit = Number.parseInt(num[i], 10);
+    let digit = Number.parseInt(num.charAt(i), 10);
     if (isEven) {
       digit *= 2;
       if (digit > 9) digit -= 9;
@@ -129,7 +129,7 @@ function generateCardNumber(type: string): string {
   const spec = CARD_SPECS[type];
   if (!spec) return "";
   const prefix =
-    spec.prefixes[Math.floor(Math.random() * spec.prefixes.length)];
+    spec.prefixes.at(Math.floor(Math.random() * spec.prefixes.length)) ?? "4";
   return generateLuhn(prefix, spec.length);
 }
 
