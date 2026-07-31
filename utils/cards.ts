@@ -14,12 +14,14 @@ function randomInt(maxExclusive: number): number {
   const range = 0x1_0000_0000;
   const rejectionLimit = range - (range % maxExclusive);
   const values = new Uint32Array(1);
+  let randomValue = 0;
 
   do {
     globalThis.crypto.getRandomValues(values);
-  } while (values[0] >= rejectionLimit);
+    randomValue = values.at(0) ?? 0;
+  } while (randomValue >= rejectionLimit);
 
-  return values[0] % maxExclusive;
+  return randomValue % maxExclusive;
 }
 
 // Luhn
@@ -27,7 +29,7 @@ function luhnChecksum(num: string): number {
   let sum = 0;
   let isEven = false;
   for (let i = num.length - 1; i >= 0; i--) {
-    let digit = Number.parseInt(num[i], 10);
+    let digit = Number.parseInt(num.charAt(i), 10);
     if (isEven) {
       digit *= 2;
       if (digit > 9) digit -= 9;
@@ -45,7 +47,12 @@ function generateLuhn(prefix: string, length: number): string {
   return num + check;
 }
 
-const CARD_SPECS: Record<string, { prefixes: string[]; length: number }> = {
+type CardSpec = {
+  prefixes: readonly [string, ...string[]];
+  length: number;
+};
+
+const CARD_SPECS: Record<string, CardSpec> = {
   visa: { prefixes: ["4"], length: 16 },
   mastercard: {
     prefixes: ["51", "52", "53", "54", "55", "2221", "2720"],
@@ -64,7 +71,8 @@ const CARD_SPECS: Record<string, { prefixes: string[]; length: number }> = {
 export function generateCardNumber(type: string): string {
   const spec = CARD_SPECS[type];
   if (!spec) return "4242424242424242";
-  const prefix = spec.prefixes[randomInt(spec.prefixes.length)];
+  const prefix =
+    spec.prefixes.at(randomInt(spec.prefixes.length)) ?? spec.prefixes[0];
   return generateLuhn(prefix, spec.length);
 }
 
