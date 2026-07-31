@@ -165,8 +165,7 @@ async function fillInputAsync(
 function getSearchRoots(): SearchRoot[] {
   const roots: SearchRoot[] = [document];
 
-  for (let index = 0; index < roots.length; index++) {
-    const root = roots[index];
+  for (const root of roots) {
     for (const element of root.querySelectorAll("*")) {
       if (element.shadowRoot && !roots.includes(element.shadowRoot)) {
         roots.push(element.shadowRoot);
@@ -248,7 +247,10 @@ async function fillCardForm(card: CardData): Promise<FillResult> {
   );
 
   if (expiryEl) {
-    if (await fillInputAsync(expiryEl, card.expiry)) filledFields++;
+    const [month, year] = card.expiry.split("/");
+    const normalizedExpiry =
+      month && year ? `${month}/${year.slice(-2)}` : card.expiry;
+    if (await fillInputAsync(expiryEl, normalizedExpiry)) filledFields++;
   } else {
     const [month = "", year = ""] = card.expiry.split("/");
     const monthEl =
