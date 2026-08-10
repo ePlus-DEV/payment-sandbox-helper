@@ -30,7 +30,7 @@
     "@wxt-dev/module-react": "^1.1.5",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",
-    "vite": "^8.1.5",
-    "wxt": "^0.21.1"
+    "vite": "^8.2.1",
+    "wxt": "^0.21.3"
   }
 }
