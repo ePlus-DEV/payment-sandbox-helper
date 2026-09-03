@@ -1,214 +1,257 @@
 import { generateCardNumber, randomCvv, randomExpiry } from "../utils/cards";
+import { cardholderStorage, countryStorage } from "../utils/storage";
 
-// Lưu card hiện tại để dùng khi context menu click
-let currentCard = {
+interface CurrentCard {
+  number: string;
+  expiry: string;
+  cvv: string;
+  name: string;
+  type: string;
+  country: string;
+}
+
+interface ContextMenuClickInfo {
+  menuItemId: string | number;
+  frameId?: number;
+}
+
+interface TabInfo {
+  id?: number;
+}
+
+// Keep the latest selected card for the individual context-menu actions.
+let currentCard: CurrentCard = {
   number: generateCardNumber("visa"),
   expiry: randomExpiry(),
   cvv: randomCvv(false),
   name: "Test User",
   type: "visa",
+  country: "US",
 };
 
-function buildMenus() {
-  browser.contextMenus.removeAll(() => {
-    // PayPal group
-    browser.contextMenus.create({
-      id: "paypal",
-      title: "PayPal Sandbox",
-      contexts: ["editable"],
-    });
+async function buildMenus() {
+  await browser.contextMenus.removeAll();
 
-    const paypalCards = [
-      {
-        id: "pp_visa",
-        label: "Visa – 4012888888881881",
-        number: "4012888888881881",
-        amex: false,
-        type: "visa",
-      },
-      {
-        id: "pp_mc",
-        label: "Mastercard – 2223000048400011",
-        number: "2223000048400011",
-        amex: false,
-        type: "mastercard",
-      },
-      {
-        id: "pp_amex",
-        label: "Amex – 371449635398431",
-        number: "371449635398431",
-        amex: true,
-        type: "amex",
-      },
-    ];
-
-    for (const c of paypalCards) {
-      browser.contextMenus.create({
-        id: c.id,
-        parentId: "paypal",
-        title: c.label,
-        contexts: ["editable"],
-      });
-    }
-
-    // Stripe group
-    browser.contextMenus.create({
-      id: "stripe",
-      title: "Stripe Test",
-      contexts: ["editable"],
-    });
-
-    const stripeCards = [
-      {
-        id: "st_visa",
-        label: "Visa – 4242424242424242",
-        number: "4242424242424242",
-        amex: false,
-        type: "visa",
-      },
-      {
-        id: "st_mc",
-        label: "Mastercard – 5555555555554444",
-        number: "5555555555554444",
-        amex: false,
-        type: "mastercard",
-      },
-      {
-        id: "st_amex",
-        label: "Amex – 378282246310005",
-        number: "378282246310005",
-        amex: true,
-        type: "amex",
-      },
-      {
-        id: "st_decline",
-        label: "Decline – 4000000000000002",
-        number: "4000000000000002",
-        amex: false,
-        type: "visa",
-      },
-      {
-        id: "st_3ds",
-        label: "3DS – 4000002760003184",
-        number: "4000002760003184",
-        amex: false,
-        type: "visa",
-      },
-    ];
-
-    for (const c of stripeCards) {
-      browser.contextMenus.create({
-        id: c.id,
-        parentId: "stripe",
-        title: c.label,
-        contexts: ["editable"],
-      });
-    }
-
-    // Separator + fill fields
-    browser.contextMenus.create({
-      id: "sep",
-      type: "separator",
-      contexts: ["editable"],
-    });
-    browser.contextMenus.create({
-      id: "fill_number",
-      title: "Fill: Card Number",
-      contexts: ["editable"],
-    });
-    browser.contextMenus.create({
-      id: "fill_expiry",
-      title: "Fill: Expiry Date",
-      contexts: ["editable"],
-    });
-    browser.contextMenus.create({
-      id: "fill_cvv",
-      title: "Fill: CVV/CVC",
-      contexts: ["editable"],
-    });
-    browser.contextMenus.create({
-      id: "fill_name",
-      title: "Fill: Cardholder Name",
-      contexts: ["editable"],
-    });
+  // PayPal group
+  browser.contextMenus.create({
+    id: "paypal",
+    title: "PayPal Sandbox",
+    contexts: ["editable"],
   });
-}
 
-export default defineBackground(() => {
-  // Toggle sidebar khi click icon extension
-  const openWindows = new Set<number>();
+  const paypalCards = [
+    {
+      id: "pp_visa",
+      label: "Visa – 4012888888881881",
+      number: "4012888888881881",
+      amex: false,
+      type: "visa",
+    },
+    {
+      id: "pp_mc",
+      label: "Mastercard – 2223000048400011",
+      number: "2223000048400011",
+      amex: false,
+      type: "mastercard",
+    },
+    {
+      id: "pp_amex",
+      label: "Amex – 371449635398431",
+      number: "371449635398431",
+      amex: true,
+      type: "amex",
+    },
+  ];
 
-  if (import.meta.env.BROWSER === "firefox") {
-    // Firefox dùng sidebarAction API
-    browser.action.onClicked.addListener(() => {
-      (browser as any).sidebarAction.toggle();
-    });
-  } else {
-    // Chrome dùng sidePanel API
-    browser.sidePanel.setPanelBehavior({ openPanelOnActionClick: false });
-    browser.action.onClicked.addListener((tab) => {
-      const winId = tab.windowId!;
-      if (openWindows.has(winId)) {
-        openWindows.delete(winId);
-        browser.sidePanel.setOptions({ enabled: false });
-        browser.sidePanel.setOptions({ enabled: true });
-      } else {
-        openWindows.add(winId);
-        browser.sidePanel.open({ windowId: winId });
-      }
+  for (const card of paypalCards) {
+    browser.contextMenus.create({
+      id: card.id,
+      parentId: "paypal",
+      title: card.label,
+      contexts: ["editable"],
     });
   }
 
-  buildMenus();
+  // Stripe group
+  browser.contextMenus.create({
+    id: "stripe",
+    title: "Stripe Test",
+    contexts: ["editable"],
+  });
 
-  const allCards: Record<
-    string,
-    { number: string; amex: boolean; type: string }
-  > = {
-    pp_visa: { number: "4012888888881881", amex: false, type: "visa" },
-    pp_mc: { number: "2223000048400011", amex: false, type: "mastercard" },
-    pp_amex: { number: "371449635398431", amex: true, type: "amex" },
-    st_visa: { number: "4242424242424242", amex: false, type: "visa" },
-    st_mc: { number: "5555555555554444", amex: false, type: "mastercard" },
-    st_amex: { number: "378282246310005", amex: true, type: "amex" },
-    st_decline: { number: "4000000000000002", amex: false, type: "visa" },
-    st_3ds: { number: "4000002760003184", amex: false, type: "visa" },
-  };
+  const stripeCards = [
+    {
+      id: "st_visa",
+      label: "Visa – 4242424242424242",
+      number: "4242424242424242",
+      amex: false,
+      type: "visa",
+    },
+    {
+      id: "st_mc",
+      label: "Mastercard – 5555555555554444",
+      number: "5555555555554444",
+      amex: false,
+      type: "mastercard",
+    },
+    {
+      id: "st_amex",
+      label: "Amex – 378282246310005",
+      number: "378282246310005",
+      amex: true,
+      type: "amex",
+    },
+    {
+      id: "st_decline",
+      label: "Decline – 4000000000000002",
+      number: "4000000000000002",
+      amex: false,
+      type: "visa",
+    },
+    {
+      id: "st_3ds",
+      label: "3DS – 4000002760003184",
+      number: "4000002760003184",
+      amex: false,
+      type: "visa",
+    },
+  ];
 
-  browser.contextMenus.onClicked.addListener((info, tab) => {
-    if (!tab?.id) return;
-    const menuId = info.menuItemId as string;
+  for (const card of stripeCards) {
+    browser.contextMenus.create({
+      id: card.id,
+      parentId: "stripe",
+      title: card.label,
+      contexts: ["editable"],
+    });
+  }
 
-    // Chọn card → lưu vào currentCard và fill toàn bộ form
-    if (allCards[menuId]) {
-      const c = allCards[menuId];
-      currentCard = {
-        number: c.number,
-        expiry: randomExpiry(),
-        cvv: randomCvv(c.amex),
-        name: "Test User",
-        type: c.type,
-      };
-      browser.tabs.sendMessage(tab.id, {
-        action: "fillCard",
-        card: currentCard,
-      });
-      return;
+  // Separator + individual field actions
+  browser.contextMenus.create({
+    id: "sep",
+    type: "separator",
+    contexts: ["editable"],
+  });
+  browser.contextMenus.create({
+    id: "fill_number",
+    title: "Fill: Card Number",
+    contexts: ["editable"],
+  });
+  browser.contextMenus.create({
+    id: "fill_expiry",
+    title: "Fill: Expiry Date",
+    contexts: ["editable"],
+  });
+  browser.contextMenus.create({
+    id: "fill_cvv",
+    title: "Fill: CVV/CVC",
+    contexts: ["editable"],
+  });
+  browser.contextMenus.create({
+    id: "fill_name",
+    title: "Fill: Cardholder Name",
+    contexts: ["editable"],
+  });
+}
+
+const allCards: Record<
+  string,
+  { number: string; amex: boolean; type: string }
+> = {
+  pp_visa: { number: "4012888888881881", amex: false, type: "visa" },
+  pp_mc: { number: "2223000048400011", amex: false, type: "mastercard" },
+  pp_amex: { number: "371449635398431", amex: true, type: "amex" },
+  st_visa: { number: "4242424242424242", amex: false, type: "visa" },
+  st_mc: { number: "5555555555554444", amex: false, type: "mastercard" },
+  st_amex: { number: "378282246310005", amex: true, type: "amex" },
+  st_decline: { number: "4000000000000002", amex: false, type: "visa" },
+  st_3ds: { number: "4000002760003184", amex: false, type: "visa" },
+};
+
+async function sendMessageToTab(
+  tabId: number,
+  message: unknown,
+  frameId?: number,
+) {
+  try {
+    if (frameId === undefined) {
+      await browser.tabs.sendMessage(tabId, message);
+    } else {
+      await browser.tabs.sendMessage(tabId, message, { frameId });
     }
+  } catch {
+    // The current page/frame may not have a matching content script.
+  }
+}
 
-    // Fill từng field riêng lẻ vào input đang focus
-    const fieldMap: Record<string, string> = {
-      fill_number: currentCard.number,
-      fill_expiry: currentCard.expiry,
-      fill_cvv: currentCard.cvv,
-      fill_name: currentCard.name,
+async function handleContextMenuClick(
+  info: ContextMenuClickInfo,
+  tab?: TabInfo,
+) {
+  if (tab?.id == null) return;
+
+  const menuId = String(info.menuItemId);
+  const selectedCard = allCards[menuId];
+
+  // Select a card, remember it, and fill every matching payment frame.
+  if (selectedCard) {
+    const [name, country] = await Promise.all([
+      cardholderStorage.getValue(),
+      countryStorage.getValue(),
+    ]);
+
+    currentCard = {
+      number: selectedCard.number,
+      expiry: randomExpiry(),
+      cvv: randomCvv(selectedCard.amex),
+      name,
+      type: selectedCard.type,
+      country,
     };
 
-    if (fieldMap[menuId] !== undefined) {
-      browser.tabs.sendMessage(tab.id, {
-        action: "fillField",
-        value: fieldMap[menuId],
-      });
-    }
+    await sendMessageToTab(tab.id, {
+      action: "fillCard",
+      card: currentCard,
+    });
+    return;
+  }
+
+  if (menuId === "fill_name") {
+    currentCard.name = await cardholderStorage.getValue();
+  }
+
+  const fieldMap: Record<string, string> = {
+    fill_number: currentCard.number,
+    fill_expiry: currentCard.expiry,
+    fill_cvv: currentCard.cvv,
+    fill_name: currentCard.name,
+  };
+
+  const value = fieldMap[menuId];
+  if (value === undefined) return;
+
+  // Target the exact iframe where the user opened the context menu.
+  await sendMessageToTab(tab.id, { action: "fillField", value }, info.frameId);
+}
+
+export default defineBackground(() => {
+  if (import.meta.env.BROWSER === "firefox") {
+    browser.action.onClicked.addListener(() => {
+      void (browser as typeof browser & {
+        sidebarAction: { toggle: () => Promise<void> };
+      }).sidebarAction.toggle();
+    });
+  } else {
+    // Let Chrome manage opening the side panel from the toolbar action.
+    // The old enable/disable workaround did not reliably close the panel.
+    void browser.sidePanel
+      .setPanelBehavior({ openPanelOnActionClick: true })
+      .catch(() => undefined);
+  }
+
+  void buildMenus();
+
+  browser.contextMenus.onClicked.addListener((info, tab) => {
+    void handleContextMenuClick(info, tab);
   });
 });
