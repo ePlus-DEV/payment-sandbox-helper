@@ -818,7 +818,10 @@ function ScenarioCardRow({
           ...cardData,
           label: scenario.label,
           type: scenario.brand,
-          country,
+          country:
+            scenario.provider === "paypal" && scenario.country
+              ? scenario.country
+              : country,
         },
       });
       onUsed?.(scenario.id);
