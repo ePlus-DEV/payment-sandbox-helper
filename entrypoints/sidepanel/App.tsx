@@ -32,6 +32,7 @@ import {
   bgPaypalStorage,
   bgStripeStorage,
 } from "../../utils/storage";
+import { generateCardNumber, randomCvv, randomExpiry } from "../../utils/cards";
 
 const m = (key: Parameters<typeof browser.i18n.getMessage>[0]) =>
   browser.i18n.getMessage(key);
@@ -85,68 +86,6 @@ const CountryCtx = createContext<{
   cardholderName: "Test User",
   setCardholderName: () => {},
 });
-
-// ── Luhn algorithm ─────────────────────────────────────────────
-function luhnChecksum(num: string): number {
-  let sum = 0;
-  let isEven = false;
-  for (let i = num.length - 1; i >= 0; i--) {
-    let digit = Number.parseInt(num[i], 10);
-    if (isEven) {
-      digit *= 2;
-      if (digit > 9) digit -= 9;
-    }
-    sum += digit;
-    isEven = !isEven;
-  }
-  return sum % 10;
-}
-
-function generateLuhn(prefix: string, length: number): string {
-  let num = prefix;
-  while (num.length < length - 1) num += Math.floor(Math.random() * 10);
-  const check = (10 - luhnChecksum(num + "0")) % 10;
-  return num + check;
-}
-
-const CARD_SPECS: Record<string, { prefixes: string[]; length: number }> = {
-  visa: { prefixes: ["4"], length: 16 },
-  mastercard: {
-    prefixes: ["51", "52", "53", "54", "55", "2221", "2720"],
-    length: 16,
-  },
-  amex: { prefixes: ["34", "37"], length: 15 },
-  diners: { prefixes: ["300", "301", "302", "303", "36", "38"], length: 14 },
-  maestro: { prefixes: ["6304", "6759", "6761", "6762", "6763"], length: 16 },
-  cup: { prefixes: ["62"], length: 16 },
-  jcb: {
-    prefixes: ["3528", "3529", "353", "354", "355", "356", "357", "358"],
-    length: 16,
-  },
-};
-
-function generateCardNumber(type: string): string {
-  const spec = CARD_SPECS[type];
-  if (!spec) return "";
-  const prefix =
-    spec.prefixes[Math.floor(Math.random() * spec.prefixes.length)];
-  return generateLuhn(prefix, spec.length);
-}
-
-// ── Random helpers ─────────────────────────────────────────────
-function randomCvv(amex = false) {
-  const len = amex ? 4 : 3;
-  return String(Math.floor(Math.random() * Math.pow(10, len))).padStart(
-    len,
-    "0",
-  );
-}
-
-function randomExpiry() {
-  const year = new Date().getFullYear() + Math.floor(Math.random() * 5) + 1;
-  const month = Math.floor(Math.random() * 12) + 1;
-  return `${String(month).padStart(2, "0")}/${year}`;
-}
 
 // ── Card groups ────────────────────────────────────────────────
 const CARD_GROUPS = [
