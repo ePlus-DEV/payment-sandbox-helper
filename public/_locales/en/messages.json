@@ -54,5 +54,15 @@
   "errorNoteDesc": { "message": "Use Visa card:" },
   "fill": { "message": "Fill" },
   "generateNew": { "message": "Generate new card" },
-  "testUser": { "message": "Test User" }
+  "testUser": { "message": "Test User" },
+  "scenarioSearch": { "message": "Search scenarios, errors, or card number..." },
+  "favorites": { "message": "Favorites" },
+  "recent": { "message": "Recent" },
+  "catRisk": { "message": "Risk" },
+  "catChecks": { "message": "Checks" },
+  "catDisputes": { "message": "Disputes" },
+  "noScenarios": { "message": "No matching scenarios" },
+  "paypal3DSNote": { "message": "Official PayPal 3D Secure purchase-flow test cards. Use a future expiry date and any 3-digit CVC." },
+  "favoriteScenario": { "message": "Favorite scenario" },
+  "removeFavorite": { "message": "Remove favorite" }
 }

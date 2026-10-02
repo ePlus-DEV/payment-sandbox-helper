@@ -54,5 +54,15 @@
   "errorNoteDesc": { "message": "Dùng thẻ Visa:" },
   "fill": { "message": "Điền" },
   "generateNew": { "message": "Tạo thẻ mới" },
-  "testUser": { "message": "Test User" }
+  "testUser": { "message": "Test User" },
+  "scenarioSearch": { "message": "Tìm scenario, lỗi hoặc số thẻ..." },
+  "favorites": { "message": "Yêu thích" },
+  "recent": { "message": "Gần đây" },
+  "catRisk": { "message": "Rủi ro" },
+  "catChecks": { "message": "Kiểm tra" },
+  "catDisputes": { "message": "Tranh chấp" },
+  "noScenarios": { "message": "Không có scenario phù hợp" },
+  "paypal3DSNote": { "message": "Thẻ test 3D Secure purchase-flow chính thức của PayPal. Dùng ngày hết hạn trong tương lai và CVC 3 chữ số bất kỳ." },
+  "favoriteScenario": { "message": "Thêm vào yêu thích" },
+  "removeFavorite": { "message": "Bỏ khỏi yêu thích" }
 }

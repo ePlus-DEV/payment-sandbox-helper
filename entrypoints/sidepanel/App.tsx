@@ -14,6 +14,8 @@ import {
   faSpinner,
   faFloppyDisk,
   faCheck,
+  faMagnifyingGlass,
+  faStar,
 } from "@fortawesome/free-solid-svg-icons";
 import {
   faPaypal,
@@ -31,8 +33,16 @@ import {
   cardholderStorage,
   bgPaypalStorage,
   bgStripeStorage,
+  scenarioFavoritesStorage,
+  scenarioRecentsStorage,
 } from "../../utils/storage";
 import { generateCardNumber, randomCvv, randomExpiry } from "../../utils/cards";
+import {
+  PAYPAL_3DS_SCENARIOS,
+  STRIPE_SCENARIOS,
+  type PaymentScenario,
+  type ScenarioCategory,
+} from "../../utils/scenarios";
 
 const m = (key: Parameters<typeof browser.i18n.getMessage>[0]) =>
   browser.i18n.getMessage(key);
@@ -156,199 +166,30 @@ const ERROR_TRIGGERS = [
   },
 ];
 
-// ── Stripe test cards ──────────────────────────────────────────
-const STRIPE_CARDS = [
-  // Success cards
-  {
-    label: "Visa",
-    number: "4242424242424242",
-    cvvLen: 3,
-    desc: "Succeeds",
-    category: "success",
-  },
-  {
-    label: "Visa (debit)",
-    number: "4000056655665556",
-    cvvLen: 3,
-    desc: "Succeeds",
-    category: "success",
-  },
-  {
-    label: "Mastercard",
-    number: "5555555555554444",
-    cvvLen: 3,
-    desc: "Succeeds",
-    category: "success",
-  },
-  {
-    label: "Mastercard (2-series)",
-    number: "2223003122003222",
-    cvvLen: 3,
-    desc: "Succeeds",
-    category: "success",
-  },
-  {
-    label: "Mastercard (debit)",
-    number: "5200828282828210",
-    cvvLen: 3,
-    desc: "Succeeds",
-    category: "success",
-  },
-  {
-    label: "Mastercard (prepaid)",
-    number: "5105105105105100",
-    cvvLen: 3,
-    desc: "Succeeds",
-    category: "success",
-  },
-  {
-    label: "American Express",
-    number: "378282246310005",
-    cvvLen: 4,
-    desc: "Succeeds",
-    category: "success",
-  },
-  {
-    label: "American Express",
-    number: "371449635398431",
-    cvvLen: 4,
-    desc: "Succeeds",
-    category: "success",
-  },
-  {
-    label: "Discover",
-    number: "6011111111111117",
-    cvvLen: 3,
-    desc: "Succeeds",
-    category: "success",
-  },
-  {
-    label: "Discover",
-    number: "6011000990139424",
-    cvvLen: 3,
-    desc: "Succeeds",
-    category: "success",
-  },
-  {
-    label: "Diners Club",
-    number: "3056930009020004",
-    cvvLen: 3,
-    desc: "Succeeds",
-    category: "success",
-  },
-  {
-    label: "Diners Club (14-digit)",
-    number: "36227206271667",
-    cvvLen: 3,
-    desc: "Succeeds",
-    category: "success",
-  },
-  {
-    label: "JCB",
-    number: "3566002020360505",
-    cvvLen: 3,
-    desc: "Succeeds",
-    category: "success",
-  },
-  {
-    label: "UnionPay",
-    number: "6200000000000005",
-    cvvLen: 3,
-    desc: "Succeeds",
-    category: "success",
-  },
-  // Decline cards
-  {
-    label: "Generic decline",
-    number: "4000000000000002",
-    cvvLen: 3,
-    desc: "card_declined",
-    category: "decline",
-  },
-  {
-    label: "Insufficient funds",
-    number: "4000000000009995",
-    cvvLen: 3,
-    desc: "insufficient_funds",
-    category: "decline",
-  },
-  {
-    label: "Lost card",
-    number: "4000000000009987",
-    cvvLen: 3,
-    desc: "lost_card",
-    category: "decline",
-  },
-  {
-    label: "Stolen card",
-    number: "4000000000009979",
-    cvvLen: 3,
-    desc: "stolen_card",
-    category: "decline",
-  },
-  {
-    label: "Expired card",
-    number: "4000000000000069",
-    cvvLen: 3,
-    desc: "expired_card",
-    category: "decline",
-  },
-  {
-    label: "Incorrect CVC",
-    number: "4000000000000127",
-    cvvLen: 3,
-    desc: "incorrect_cvc",
-    category: "decline",
-  },
-  {
-    label: "Processing error",
-    number: "4000000000000119",
-    cvvLen: 3,
-    desc: "processing_error",
-    category: "decline",
-  },
-  {
-    label: "Fraudulent",
-    number: "4100000000000019",
-    cvvLen: 3,
-    desc: "fraudulent (Radar)",
-    category: "decline",
-  },
-  // 3DS
-  {
-    label: "3DS - Always auth",
-    number: "4000002760003184",
-    cvvLen: 3,
-    desc: "Requires 3DS auth",
-    category: "3ds",
-  },
-  {
-    label: "3DS - Auth or decline",
-    number: "4000008400001629",
-    cvvLen: 3,
-    desc: "3DS then declined",
-    category: "3ds",
-  },
-  {
-    label: "3DS - Frictionless",
-    number: "4000000000003220",
-    cvvLen: 3,
-    desc: "Frictionless flow",
-    category: "3ds",
-  },
-];
-
-const STRIPE_CATEGORIES = ["All", "Success", "Decline", "3DS"] as const;
+// ── Stripe scenario catalog ────────────────────────────────────
+const STRIPE_CATEGORIES = [
+  "All",
+  "Success",
+  "Decline",
+  "3DS",
+  "Risk",
+  "Checks",
+  "Disputes",
+  "Favorites",
+  "Recent",
+] as const;
 type StripeCategory = (typeof STRIPE_CATEGORIES)[number];
 
-const STRIPE_CAT_FILTER: Record<StripeCategory, string> = {
-  All: "",
+const STRIPE_CAT_FILTER: Partial<Record<StripeCategory, ScenarioCategory>> = {
   Success: "success",
   Decline: "decline",
   "3DS": "3ds",
+  Risk: "risk",
+  Checks: "checks",
+  Disputes: "disputes",
 };
 
-const TABS = ["All", "Visa", "Mastercard", "Amex", "Others", "Errors"] as const;
+const TABS = ["All", "Visa", "Mastercard", "Amex", "Others", "3DS", "Errors"] as const;
 type Tab = (typeof TABS)[number];
 
 const TAB_FILTER: Record<Tab, string[]> = {
@@ -357,6 +198,7 @@ const TAB_FILTER: Record<Tab, string[]> = {
   Mastercard: ["mastercard"],
   Amex: ["amex"],
   Others: ["diners", "maestro", "cup", "jcb"],
+  "3DS": [],
   Errors: [],
 };
 
@@ -366,6 +208,7 @@ const TAB_LABEL: Record<Tab, Parameters<typeof browser.i18n.getMessage>[0]> = {
   Mastercard: "tabMastercard",
   Amex: "tabAmex",
   Others: "tabOthers",
+  "3DS": "cat3DS",
   Errors: "tabErrors",
 };
 
@@ -377,21 +220,31 @@ const STRIPE_CAT_LABEL: Record<
   Success: "catSuccess",
   Decline: "catDecline",
   "3DS": "cat3DS",
+  Risk: "catRisk",
+  Checks: "catChecks",
+  Disputes: "catDisputes",
+  Favorites: "favorites",
+  Recent: "recent",
 };
 
 // ── Clipboard ──────────────────────────────────────────────────
+function legacyCopy(text: string) {
+  const el = document.createElement("textarea");
+  el.value = text;
+  el.style.cssText = "position:fixed;opacity:0";
+  document.body.appendChild(el);
+  el.select();
+  document.execCommand("copy");
+  el.remove();
+}
+
 function copyText(text: string) {
-  try {
-    navigator.clipboard.writeText(text);
-  } catch {
-    const el = document.createElement("textarea");
-    el.value = text;
-    el.style.cssText = "position:fixed;opacity:0";
-    document.body.appendChild(el);
-    el.select();
-    document.execCommand("copy");
-    el.remove();
+  if (!navigator.clipboard?.writeText) {
+    legacyCopy(text);
+    return;
   }
+
+  void navigator.clipboard.writeText(text).catch(() => legacyCopy(text));
 }
 
 // ── Settings page ──────────────────────────────────────────────
@@ -916,21 +769,37 @@ function ErrorTriggerRow({ item }: { item: (typeof ERROR_TRIGGERS)[0] }) {
   );
 }
 
-// ── StripeCardRow ──────────────────────────────────────────────
-function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
-  const { country, bgStripe, cardholderName } = useContext(CountryCtx);
-  const [card_data] = useState(() => ({
-    number: card.number,
+// ── ScenarioCardRow ─────────────────────────────────────────────
+function ScenarioCardRow({
+  scenario,
+  favorite = false,
+  onToggleFavorite,
+  onUsed,
+}: {
+  scenario: PaymentScenario;
+  favorite?: boolean;
+  onToggleFavorite?: (id: string) => void;
+  onUsed?: (id: string) => void;
+}) {
+  const { country, bgPaypal, bgStripe, cardholderName } =
+    useContext(CountryCtx);
+  const [cardData, setCardData] = useState(() => ({
+    number: scenario.number,
     expiry: randomExpiry(),
-    cvv: randomCvv(card.cvvLen === 4),
+    cvv: randomCvv(scenario.cvvLen === 4),
     name: cardholderName,
   }));
   const [copied, setCopied] = useState("");
   const [filling, setFilling] = useState(false);
   const [toast, setToast] = useState("");
 
+  useEffect(() => {
+    setCardData((current) => ({ ...current, name: cardholderName }));
+  }, [cardholderName]);
+
   const copy = (text: string, key: string) => {
     copyText(text);
+    if (key === "num") onUsed?.(scenario.id);
     setCopied(key);
     setTimeout(() => setCopied(""), 1500);
   };
@@ -945,8 +814,17 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
       if (!tab?.id) throw new Error("no tab");
       await browser.tabs.sendMessage(tab.id, {
         action: "fillCard",
-        card: { ...card_data, label: card.label, type: "stripe", country },
+        card: {
+          ...cardData,
+          label: scenario.label,
+          type: scenario.brand,
+          country:
+            scenario.provider === "paypal" && scenario.country
+              ? scenario.country
+              : country,
+        },
       });
+      onUsed?.(scenario.id);
       setToast(m("filled"));
     } catch {
       setToast(m("noForm"));
@@ -956,77 +834,77 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
     }
   };
 
-  const isDecline = card.category === "decline";
-  const is3ds = card.category === "3ds";
+  const providerBg = scenario.provider === "paypal" ? bgPaypal : bgStripe;
+  const gradient =
+    scenario.provider === "paypal"
+      ? "from-[#003087] to-[#009cde]"
+      : scenario.category === "decline"
+        ? "from-red-700 to-red-500"
+        : scenario.category === "3ds"
+          ? "from-yellow-600 to-orange-500"
+          : scenario.category === "risk"
+            ? "from-orange-700 to-red-600"
+            : scenario.category === "checks"
+              ? "from-cyan-700 to-teal-500"
+              : scenario.category === "disputes"
+                ? "from-rose-700 to-pink-500"
+                : "from-[#635bff] to-[#4f46e5]";
 
-  // Stripe gradient theo category
-  const gradient = isDecline
-    ? "from-red-700 to-red-500"
-    : is3ds
-      ? "from-yellow-600 to-orange-500"
-      : "from-[#635bff] to-[#4f46e5]";
-
-  // Detect brand từ số thẻ
-  const num = card.number;
-  const brandIcon = num.startsWith("4")
-    ? faCcVisa
-    : num.startsWith("5") || num.startsWith("2")
-      ? faCcMastercard
-      : num.startsWith("3") && (num[1] === "4" || num[1] === "7")
-        ? faCcAmex
-        : num.startsWith("6011")
-          ? faCcDiscover
-          : num.startsWith("35")
-            ? faCcJcb
-            : num.startsWith("36")
-              ? faCcDinersClub
-              : null;
+  const brandIcon = CARD_BRAND_ICON[scenario.brand];
+  const bgStyle = providerBg
+    ? {
+        backgroundImage: `url(${providerBg})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }
+    : {};
 
   return (
     <div className="rounded-2xl overflow-hidden shadow-md">
-      {/* Card body */}
       <div
-        className={`${bgStripe ? "" : `bg-gradient-to-br ${gradient}`} px-5 py-4`}
-        style={
-          bgStripe
-            ? {
-                backgroundImage: `url(${bgStripe})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }
-            : {}
-        }
+        className={`${providerBg ? "" : `bg-gradient-to-br ${gradient}`} px-5 py-4`}
+        style={bgStyle}
       >
-        {/* Top: desc badge + fill button */}
-        <div className="flex justify-between items-start mb-3">
-          <span
-            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-              isDecline
-                ? "bg-white/20 text-white"
-                : is3ds
-                  ? "bg-white/20 text-white"
-                  : "bg-white/20 text-white"
-            }`}
-          >
-            {card.desc}
-          </span>
-          <button
-            onClick={fillCard}
-            disabled={filling}
-            className="text-xs font-bold px-3 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors disabled:opacity-50 cursor-pointer border-0"
-          >
-            {filling ? (
-              <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
-            ) : (
-              m("autoFill")
+        <div className="flex justify-between items-start gap-2 mb-3">
+          <div className="min-w-0">
+            <div className="text-xs font-bold text-white truncate">
+              {scenario.label}
+            </div>
+            <div className="text-[10px] text-white/70 truncate" title={scenario.desc}>
+              {scenario.desc}
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {onToggleFavorite && (
+              <button
+                onClick={() => onToggleFavorite(scenario.id)}
+                title={favorite ? m("removeFavorite") : m("favoriteScenario")}
+                className={`w-7 h-7 flex items-center justify-center rounded-lg border-0 cursor-pointer transition-colors ${
+                  favorite
+                    ? "bg-yellow-300 text-yellow-900"
+                    : "bg-white/15 hover:bg-white/25 text-white"
+                }`}
+              >
+                <FontAwesomeIcon icon={faStar} size="xs" />
+              </button>
             )}
-          </button>
+            <button
+              onClick={fillCard}
+              disabled={filling}
+              className="text-xs font-bold px-3 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors disabled:opacity-50 cursor-pointer border-0"
+            >
+              {filling ? (
+                <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
+              ) : (
+                m("autoFill")
+              )}
+            </button>
+          </div>
         </div>
 
-        {/* Card number */}
         <button
-          onClick={() => copy(card.number, "num")}
-          className={`w-full text-left font-mono text-base tracking-[0.18em] px-0 py-0 border-0 bg-transparent transition-colors cursor-pointer mb-4 ${
+          onClick={() => copy(scenario.number, "num")}
+          className={`w-full text-left font-mono text-base tracking-[0.13em] px-0 py-0 border-0 bg-transparent transition-colors cursor-pointer mb-4 ${
             copied === "num"
               ? "text-green-300"
               : "text-white/90 hover:text-white"
@@ -1034,29 +912,28 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
         >
           {copied === "num"
             ? m("copiedCheck")
-            : card.number.replace(/(.{4})/g, "$1 ").trim()}
+            : scenario.number.replace(/(.{4})/g, "$1 ").trim()}
         </button>
 
-        {/* Bottom: label + brand */}
         <div className="flex items-end justify-between">
-          <div>
+          <div className="flex-1 min-w-0 mr-2">
             <div className="text-[10px] text-white/50 uppercase tracking-widest mb-0.5">
               {m("cardholder")}
             </div>
             <button
-              onClick={() => copy(card_data.name, "name")}
-              className={`text-xs font-semibold uppercase tracking-wide border-0 bg-transparent cursor-pointer p-0 transition-colors ${
+              onClick={() => copy(cardData.name, "name")}
+              className={`text-xs font-semibold uppercase tracking-wide truncate border-0 bg-transparent cursor-pointer p-0 transition-colors ${
                 copied === "name"
                   ? "text-green-300"
                   : "text-white/90 hover:text-white"
               }`}
             >
-              {copied === "name" ? m("copiedCheck") : card_data.name}
+              {copied === "name" ? m("copiedCheck") : cardData.name}
             </button>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-white/50 font-mono">
-              {country}
+            <span className="text-[10px] text-white/60 font-mono">
+              {scenario.country ? `${scenario.country} issuer` : country}
             </span>
             {brandIcon ? (
               <FontAwesomeIcon
@@ -1066,28 +943,27 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
               />
             ) : (
               <span className="text-xs font-bold text-white/80 uppercase">
-                {card.label}
+                {scenario.brand}
               </span>
             )}
           </div>
         </div>
       </div>
 
-      {/* Expiry + CVV strip */}
       <div className="bg-gray-100 px-5 py-3 flex items-center justify-between">
         <div>
           <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest mb-1">
             {m("expiryDate")}
           </div>
           <button
-            onClick={() => copy(card_data.expiry, "exp")}
+            onClick={() => copy(cardData.expiry, "exp")}
             className={`font-mono text-sm font-bold border-0 bg-transparent cursor-pointer transition-colors p-0 ${
               copied === "exp"
                 ? "text-green-600"
                 : "text-gray-800 hover:text-blue-600"
             }`}
           >
-            {copied === "exp" ? m("copied") : card_data.expiry}
+            {copied === "exp" ? m("copied") : cardData.expiry}
           </button>
         </div>
         <div className="text-right">
@@ -1095,14 +971,14 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
             {m("cvc")}
           </div>
           <button
-            onClick={() => copy(card_data.cvv, "cvv")}
+            onClick={() => copy(cardData.cvv, "cvv")}
             className={`font-mono text-sm font-bold border-0 bg-transparent cursor-pointer transition-colors p-0 ${
               copied === "cvv"
                 ? "text-green-600"
                 : "text-gray-800 hover:text-blue-600"
             }`}
           >
-            {copied === "cvv" ? m("copied") : card_data.cvv}
+            {copied === "cvv" ? m("copied") : cardData.cvv}
           </button>
         </div>
       </div>
@@ -1118,16 +994,86 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
 
 function StripePage() {
   const [activeCategory, setActiveCategory] = useState<StripeCategory>("All");
+  const [query, setQuery] = useState("");
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [recents, setRecents] = useState<string[]>([]);
 
-  const filtered =
-    activeCategory === "All"
-      ? STRIPE_CARDS
-      : STRIPE_CARDS.filter(
-          (c) => c.category === STRIPE_CAT_FILTER[activeCategory],
-        );
+  useEffect(() => {
+    void Promise.all([
+      scenarioFavoritesStorage.getValue(),
+      scenarioRecentsStorage.getValue(),
+    ]).then(([savedFavorites, savedRecents]) => {
+      setFavorites(savedFavorites);
+      setRecents(savedRecents);
+    });
+  }, []);
+
+  const toggleFavorite = (id: string) => {
+    setFavorites((current) => {
+      const next = current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [id, ...current];
+      void scenarioFavoritesStorage.setValue(next);
+      return next;
+    });
+  };
+
+  const markRecent = (id: string) => {
+    setRecents((current) => {
+      const next = [id, ...current.filter((item) => item !== id)].slice(0, 5);
+      void scenarioRecentsStorage.setValue(next);
+      return next;
+    });
+  };
+
+  const filtered = useMemo(() => {
+    let items = [...STRIPE_SCENARIOS];
+    const category = STRIPE_CAT_FILTER[activeCategory];
+
+    if (activeCategory === "Favorites") {
+      items = items.filter((scenario) => favorites.includes(scenario.id));
+      items.sort(
+        (a, b) => favorites.indexOf(a.id) - favorites.indexOf(b.id),
+      );
+    } else if (activeCategory === "Recent") {
+      items = items.filter((scenario) => recents.includes(scenario.id));
+      items.sort((a, b) => recents.indexOf(a.id) - recents.indexOf(b.id));
+    } else if (category) {
+      items = items.filter((scenario) => scenario.category === category);
+    }
+
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return items;
+
+    return items.filter((scenario) =>
+      [
+        scenario.label,
+        scenario.number,
+        scenario.desc,
+        scenario.brand,
+        scenario.category,
+        scenario.country ?? "",
+      ].some((value) => value.toLowerCase().includes(normalized)),
+    );
+  }, [activeCategory, favorites, query, recents]);
 
   return (
     <>
+      <div className="bg-white border-b border-slate-200 px-3 py-2">
+        <div className="relative">
+          <FontAwesomeIcon
+            icon={faMagnifyingGlass}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"
+          />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={m("scenarioSearch")}
+            className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-8 pr-3 text-xs text-slate-700 outline-none focus:border-[#635bff] focus:ring-2 focus:ring-purple-100"
+          />
+        </div>
+      </div>
+
       <div className="flex bg-white border-b border-slate-200 px-2 pt-2 gap-1 overflow-x-auto">
         {STRIPE_CATEGORIES.map((cat) => (
           <button
@@ -1139,7 +1085,9 @@ function StripePage() {
                   ? "bg-red-500 text-white"
                   : cat === "3DS"
                     ? "bg-yellow-500 text-white"
-                    : "bg-[#635bff] text-white"
+                    : cat === "Risk"
+                      ? "bg-orange-500 text-white"
+                      : "bg-[#635bff] text-white"
                 : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
             }`}
           >
@@ -1147,10 +1095,23 @@ function StripePage() {
           </button>
         ))}
       </div>
+
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
-        {filtered.map((card) => (
-          <StripeCardRow key={card.number} card={card} />
-        ))}
+        {filtered.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-xs text-slate-400">
+            {m("noScenarios")}
+          </div>
+        ) : (
+          filtered.map((scenario) => (
+            <ScenarioCardRow
+              key={scenario.id}
+              scenario={scenario}
+              favorite={favorites.includes(scenario.id)}
+              onToggleFavorite={toggleFavorite}
+              onUsed={markRecent}
+            />
+          ))
+        )}
       </div>
     </>
   );
@@ -1370,6 +1331,15 @@ function App() {
                       </div>
                       {ERROR_TRIGGERS.map((item) => (
                         <ErrorTriggerRow key={item.trigger} item={item} />
+                      ))}
+                    </>
+                  ) : activeTab === "3DS" ? (
+                    <>
+                      <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-800 mb-2">
+                        {m("paypal3DSNote")}
+                      </div>
+                      {PAYPAL_3DS_SCENARIOS.map((scenario) => (
+                        <ScenarioCardRow key={scenario.id} scenario={scenario} />
                       ))}
                     </>
                   ) : (
