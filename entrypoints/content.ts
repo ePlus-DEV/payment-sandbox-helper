@@ -15,15 +15,13 @@ export default defineContentScript({
 
     // Track the field that is focused or opened through the context menu.
     document.addEventListener("focusin", (event) => {
-      if (isFillableTextElement(event.target)) {
-        lastFocusedInput = event.target;
-      }
+      const target = getFillableEventTarget(event);
+      if (target) lastFocusedInput = target;
     });
 
     document.addEventListener("contextmenu", (event) => {
-      if (isFillableTextElement(event.target)) {
-        lastFocusedInput = event.target;
-      }
+      const target = getFillableEventTarget(event);
+      if (target) lastFocusedInput = target;
     });
 
     browser.runtime.onMessage.addListener((message: unknown) => {
@@ -34,7 +32,11 @@ export default defineContentScript({
       }
 
       if (message.action === "fillField" && typeof message.value === "string") {
-        const success = fillInput(lastFocusedInput, message.value);
+        const value =
+          message.field === "expiry" && lastFocusedInput
+            ? normalizeCombinedExpiry(lastFocusedInput, message.value)
+            : message.value;
+        const success = fillInput(lastFocusedInput, value);
         return { success, filledFields: success ? 1 : 0 };
       }
 
@@ -81,6 +83,57 @@ function isFillableTextElement(
   return (
     target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement
   );
+}
+
+function getFillableEventTarget(event: Event): FillableTextElement | null {
+  for (const target of event.composedPath()) {
+    if (isFillableTextElement(target)) return target;
+  }
+
+  return isFillableTextElement(event.target) ? event.target : null;
+}
+
+function normalizeCombinedExpiry(
+  el: FillableTextElement,
+  expiry: string,
+): string {
+  const [month, rawYear] = expiry.split("/");
+  if (!month || !rawYear) return expiry;
+
+  const fullYear = rawYear.length === 2 ? `20${rawYear}` : rawYear;
+  const hint = [
+    el.getAttribute("placeholder"),
+    el.getAttribute("aria-label"),
+    el.getAttribute("name"),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  const expectsFourDigitYear = hint.includes("yyyy") || el.maxLength >= 7;
+
+  return `${month}/${expectsFourDigitYear ? fullYear : fullYear.slice(-2)}`;
+}
+
+function normalizeExpiryYear(
+  el: FillableTextElement | HTMLSelectElement | null,
+  year: string,
+): string {
+  const fullYear = year.length === 2 ? `20${year}` : year;
+  if (!el || el instanceof HTMLSelectElement) return fullYear;
+
+  const hint = [
+    el.getAttribute("placeholder"),
+    el.getAttribute("aria-label"),
+    el.getAttribute("name"),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  const expectsTwoDigitYear =
+    (el.maxLength > 0 && el.maxLength <= 2) ||
+    (hint.includes("yy") && !hint.includes("yyyy"));
+
+  return expectsTwoDigitYear ? fullYear.slice(-2) : fullYear;
 }
 
 function setNativeValue(el: FillableTextElement, value: string) {
@@ -229,68 +282,76 @@ async function fillCardForm(card: CardData): Promise<FillResult> {
   if (await fillInputAsync(cardNumberEl, card.number)) filledFields++;
 
   // Expiry
-  const expiryEl = findInput(
-    [
-      'input[name*="expir" i]',
-      'input[id*="expir" i]',
-      'input[placeholder*="mm/yy" i]',
-      'input[placeholder*="mm / yy" i]',
-      'input[placeholder*="expiry" i]',
-      'input[aria-label*="expiration" i]',
-      'input[autocomplete="cc-exp"]',
-      'input[data-elements-stable-field-name="cardExpiry"]',
-      'input[name="exp-date"]',
-      'input[name="expdate"]',
-      'input[name="cc-exp"]',
-    ],
-    roots,
-  );
+  const [month = "", year = ""] = card.expiry.split("/");
+  const monthEl =
+    findInput(
+      [
+        'input[name*="exp" i][name*="month" i]',
+        'input[id*="exp" i][id*="month" i]',
+        'input[autocomplete="cc-exp-month"]',
+      ],
+      roots,
+    ) ??
+    findSelect(
+      [
+        'select[name*="exp" i][name*="month" i]',
+        'select[id*="exp" i][id*="month" i]',
+        'select[autocomplete="cc-exp-month"]',
+      ],
+      roots,
+    );
+  const yearEl =
+    findInput(
+      [
+        'input[name*="exp" i][name*="year" i]',
+        'input[id*="exp" i][id*="year" i]',
+        'input[autocomplete="cc-exp-year"]',
+      ],
+      roots,
+    ) ??
+    findSelect(
+      [
+        'select[name*="exp" i][name*="year" i]',
+        'select[id*="exp" i][id*="year" i]',
+        'select[autocomplete="cc-exp-year"]',
+      ],
+      roots,
+    );
 
-  if (expiryEl) {
-    const [month, year] = card.expiry.split("/");
-    const normalizedExpiry =
-      month && year ? `${month}/${year.slice(-2)}` : card.expiry;
-    if (await fillInputAsync(expiryEl, normalizedExpiry)) filledFields++;
-  } else {
-    const [month = "", year = ""] = card.expiry.split("/");
-    const monthEl =
-      findInput(
-        [
-          'input[name*="exp" i][name*="month" i]',
-          'input[id*="exp" i][id*="month" i]',
-          'input[autocomplete="cc-exp-month"]',
-        ],
-        roots,
-      ) ??
-      findSelect(
-        [
-          'select[name*="exp" i][name*="month" i]',
-          'select[id*="exp" i][id*="month" i]',
-          'select[autocomplete="cc-exp-month"]',
-        ],
-        roots,
-      );
-    const yearEl =
-      findInput(
-        [
-          'input[name*="exp" i][name*="year" i]',
-          'input[id*="exp" i][id*="year" i]',
-          'input[autocomplete="cc-exp-year"]',
-        ],
-        roots,
-      ) ??
-      findSelect(
-        [
-          'select[name*="exp" i][name*="year" i]',
-          'select[id*="exp" i][id*="year" i]',
-          'select[autocomplete="cc-exp-year"]',
-        ],
-        roots,
-      );
-
-    if (await fillInputAsync(monthEl, month)) filledFields++;
+  // Prefer explicit month/year fields so a broad "expiration*" selector does
+  // not accidentally treat expirationMonth as a combined MM/YY input.
+  if (monthEl || yearEl) {
+    if (month && (await fillInputAsync(monthEl, month))) filledFields++;
     if (
-      await fillInputAsync(yearEl, year.length === 2 ? `20${year}` : year)
+      year &&
+      (await fillInputAsync(yearEl, normalizeExpiryYear(yearEl, year)))
+    ) {
+      filledFields++;
+    }
+  } else {
+    const expiryEl = findInput(
+      [
+        'input[name*="expir" i]',
+        'input[id*="expir" i]',
+        'input[placeholder*="mm/yy" i]',
+        'input[placeholder*="mm / yy" i]',
+        'input[placeholder*="expiry" i]',
+        'input[aria-label*="expiration" i]',
+        'input[autocomplete="cc-exp"]',
+        'input[data-elements-stable-field-name="cardExpiry"]',
+        'input[name="exp-date"]',
+        'input[name="expdate"]',
+        'input[name="cc-exp"]',
+      ],
+      roots,
+    );
+
+    if (
+      expiryEl &&
+      (await fillInputAsync(
+        expiryEl,
+        normalizeCombinedExpiry(expiryEl, card.expiry),
+      ))
     ) {
       filledFields++;
     }
