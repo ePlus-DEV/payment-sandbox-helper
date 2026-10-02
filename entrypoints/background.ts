@@ -231,7 +231,15 @@ async function handleContextMenuClick(
   if (value === undefined) return;
 
   // Target the exact iframe where the user opened the context menu.
-  await sendMessageToTab(tab.id, { action: "fillField", value }, info.frameId);
+  await sendMessageToTab(
+    tab.id,
+    {
+      action: "fillField",
+      field: menuId.slice("fill_".length),
+      value,
+    },
+    info.frameId,
+  );
 }
 
 export default defineBackground(() => {
