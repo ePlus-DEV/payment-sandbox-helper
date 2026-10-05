@@ -5,17 +5,17 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   refresh:
     if: github.head_ref == 'chore/wxt-security-refresh'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout pull request head
+      - name: Checkout pull request branch
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.head_ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -35,11 +35,20 @@ jobs:
             http-cache-semantics \
             ip-address
 
-      - name: Upload refreshed dependency files
-        uses: actions/upload-artifact@v7
-        with:
-          name: refreshed-dependencies
-          path: |
-            package.json
-            yarn.lock
-          retention-days: 1
+      - name: Commit refreshed dependency lockfile
+        env:
+          HEAD_BRANCH: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+
+          git add package.json yarn.lock
+
+          if git diff --cached --quiet; then
+            echo "Dependency lockfile is already current."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(deps): refresh patched transitive dependencies"
+          git push origin "HEAD:$HEAD_BRANCH"
