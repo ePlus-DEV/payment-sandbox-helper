@@ -14,6 +14,7 @@ import {
   faSpinner,
   faFloppyDisk,
   faCheck,
+  faMagnifyingGlass,
 } from "@fortawesome/free-solid-svg-icons";
 import {
   faPaypal,
@@ -33,6 +34,13 @@ import {
   bgStripeStorage,
 } from "../../utils/storage";
 import { generateCardNumber, randomCvv, randomExpiry } from "../../utils/cards";
+import {
+  PAYPAL_3DS_CARDS,
+  PAYPAL_ERROR_TRIGGERS,
+  STRIPE_TEST_CARDS,
+  type PaypalErrorTrigger,
+  type TestScenarioCard,
+} from "../../utils/test-scenarios";
 
 const m = (key: Parameters<typeof browser.i18n.getMessage>[0]) =>
   browser.i18n.getMessage(key);
@@ -98,247 +106,10 @@ const CARD_GROUPS = [
   { label: "JCB", type: "jcb", amex: false },
 ];
 
-// ── Error triggers ─────────────────────────────────────────────
-const ERROR_TRIGGERS = [
-  {
-    name: "Card refused",
-    trigger: "CCREJECT-REFUSED",
-    code: "0500",
-    desc: "DO_NOT_HONOR",
-  },
-  {
-    name: "Fraudulent card",
-    trigger: "CCREJECT-SF",
-    code: "9500",
-    desc: "SUSPECTED_FRAUD. Try using another card. Do not retry the same card.",
-  },
-  {
-    name: "Card expired",
-    trigger: "CCREJECT-EC",
-    code: "5400",
-    desc: "EXPIRED_CARD",
-  },
-  {
-    name: "Luhn check fails",
-    trigger: "CCREJECT-IRC",
-    code: "5180",
-    desc: "INVALID_OR_RESTRICTED_CARD. Try using another card. Do not retry the same card.",
-  },
-  {
-    name: "Insufficient funds",
-    trigger: "CCREJECT-IF",
-    code: "5120",
-    desc: "INSUFFICIENT_FUNDS",
-  },
-  {
-    name: "Card lost/stolen",
-    trigger: "CCREJECT-LS",
-    code: "9520",
-    desc: "LOST_OR_STOLEN. Try using another card. Do not retry the same card.",
-  },
-  {
-    name: "Card not valid",
-    trigger: "CCREJECT-IA",
-    code: "1330",
-    desc: "INVALID_ACCOUNT",
-  },
-  {
-    name: "Card declined",
-    trigger: "CCREJECT-BANK_ERROR",
-    code: "5100",
-    desc: "GENERIC_DECLINE",
-  },
-  {
-    name: "CVC check fails",
-    trigger: "CCREJECT-CVV_F",
-    code: "00N7",
-    desc: "CVV2_FAILURE_POSSIBLE_RETRY_WITH_CVV",
-  },
-];
+// ── Shared test scenario catalog ──────────────────────────────
+const STRIPE_CARDS = STRIPE_TEST_CARDS;
 
-// ── Stripe test cards ──────────────────────────────────────────
-const STRIPE_CARDS = [
-  // Success cards
-  {
-    label: "Visa",
-    number: "4242424242424242",
-    cvvLen: 3,
-    desc: "Succeeds",
-    category: "success",
-  },
-  {
-    label: "Visa (debit)",
-    number: "4000056655665556",
-    cvvLen: 3,
-    desc: "Succeeds",
-    category: "success",
-  },
-  {
-    label: "Mastercard",
-    number: "5555555555554444",
-    cvvLen: 3,
-    desc: "Succeeds",
-    category: "success",
-  },
-  {
-    label: "Mastercard (2-series)",
-    number: "2223003122003222",
-    cvvLen: 3,
-    desc: "Succeeds",
-    category: "success",
-  },
-  {
-    label: "Mastercard (debit)",
-    number: "5200828282828210",
-    cvvLen: 3,
-    desc: "Succeeds",
-    category: "success",
-  },
-  {
-    label: "Mastercard (prepaid)",
-    number: "5105105105105100",
-    cvvLen: 3,
-    desc: "Succeeds",
-    category: "success",
-  },
-  {
-    label: "American Express",
-    number: "378282246310005",
-    cvvLen: 4,
-    desc: "Succeeds",
-    category: "success",
-  },
-  {
-    label: "American Express",
-    number: "371449635398431",
-    cvvLen: 4,
-    desc: "Succeeds",
-    category: "success",
-  },
-  {
-    label: "Discover",
-    number: "6011111111111117",
-    cvvLen: 3,
-    desc: "Succeeds",
-    category: "success",
-  },
-  {
-    label: "Discover",
-    number: "6011000990139424",
-    cvvLen: 3,
-    desc: "Succeeds",
-    category: "success",
-  },
-  {
-    label: "Diners Club",
-    number: "3056930009020004",
-    cvvLen: 3,
-    desc: "Succeeds",
-    category: "success",
-  },
-  {
-    label: "Diners Club (14-digit)",
-    number: "36227206271667",
-    cvvLen: 3,
-    desc: "Succeeds",
-    category: "success",
-  },
-  {
-    label: "JCB",
-    number: "3566002020360505",
-    cvvLen: 3,
-    desc: "Succeeds",
-    category: "success",
-  },
-  {
-    label: "UnionPay",
-    number: "6200000000000005",
-    cvvLen: 3,
-    desc: "Succeeds",
-    category: "success",
-  },
-  // Decline cards
-  {
-    label: "Generic decline",
-    number: "4000000000000002",
-    cvvLen: 3,
-    desc: "card_declined",
-    category: "decline",
-  },
-  {
-    label: "Insufficient funds",
-    number: "4000000000009995",
-    cvvLen: 3,
-    desc: "insufficient_funds",
-    category: "decline",
-  },
-  {
-    label: "Lost card",
-    number: "4000000000009987",
-    cvvLen: 3,
-    desc: "lost_card",
-    category: "decline",
-  },
-  {
-    label: "Stolen card",
-    number: "4000000000009979",
-    cvvLen: 3,
-    desc: "stolen_card",
-    category: "decline",
-  },
-  {
-    label: "Expired card",
-    number: "4000000000000069",
-    cvvLen: 3,
-    desc: "expired_card",
-    category: "decline",
-  },
-  {
-    label: "Incorrect CVC",
-    number: "4000000000000127",
-    cvvLen: 3,
-    desc: "incorrect_cvc",
-    category: "decline",
-  },
-  {
-    label: "Processing error",
-    number: "4000000000000119",
-    cvvLen: 3,
-    desc: "processing_error",
-    category: "decline",
-  },
-  {
-    label: "Fraudulent",
-    number: "4100000000000019",
-    cvvLen: 3,
-    desc: "fraudulent (Radar)",
-    category: "decline",
-  },
-  // 3DS
-  {
-    label: "3DS - Always auth",
-    number: "4000002760003184",
-    cvvLen: 3,
-    desc: "Requires 3DS auth",
-    category: "3ds",
-  },
-  {
-    label: "3DS - Auth or decline",
-    number: "4000008400001629",
-    cvvLen: 3,
-    desc: "3DS then declined",
-    category: "3ds",
-  },
-  {
-    label: "3DS - Frictionless",
-    number: "4000000000003220",
-    cvvLen: 3,
-    desc: "Frictionless flow",
-    category: "3ds",
-  },
-];
-
-const STRIPE_CATEGORIES = ["All", "Success", "Decline", "3DS"] as const;
+const STRIPE_CATEGORIES = ["All", "Success", "Decline", "3DS", "Radar", "Dispute"] as const;
 type StripeCategory = (typeof STRIPE_CATEGORIES)[number];
 
 const STRIPE_CAT_FILTER: Record<StripeCategory, string> = {
@@ -346,9 +117,11 @@ const STRIPE_CAT_FILTER: Record<StripeCategory, string> = {
   Success: "success",
   Decline: "decline",
   "3DS": "3ds",
+  Radar: "radar",
+  Dispute: "dispute",
 };
 
-const TABS = ["All", "Visa", "Mastercard", "Amex", "Others", "Errors"] as const;
+const TABS = ["All", "Visa", "Mastercard", "Amex", "Others", "Errors", "3DS"] as const;
 type Tab = (typeof TABS)[number];
 
 const TAB_FILTER: Record<Tab, string[]> = {
@@ -358,6 +131,7 @@ const TAB_FILTER: Record<Tab, string[]> = {
   Amex: ["amex"],
   Others: ["diners", "maestro", "cup", "jcb"],
   Errors: [],
+  "3DS": [],
 };
 
 const TAB_LABEL: Record<Tab, Parameters<typeof browser.i18n.getMessage>[0]> = {
@@ -367,6 +141,7 @@ const TAB_LABEL: Record<Tab, Parameters<typeof browser.i18n.getMessage>[0]> = {
   Amex: "tabAmex",
   Others: "tabOthers",
   Errors: "tabErrors",
+  "3DS": "tab3DS",
 };
 
 const STRIPE_CAT_LABEL: Record<
@@ -377,6 +152,8 @@ const STRIPE_CAT_LABEL: Record<
   Success: "catSuccess",
   Decline: "catDecline",
   "3DS": "cat3DS",
+  Radar: "catRadar",
+  Dispute: "catDispute",
 };
 
 // ── Clipboard ──────────────────────────────────────────────────
@@ -650,6 +427,13 @@ function CardRow({ group }: { group: CardGroup }) {
     setTimeout(() => setCopied(""), 1500);
   };
 
+  const copyAll = () => {
+    copy(
+      [group.label, card.number, card.expiry, card.cvv, card.name, country].join("\n"),
+      "all",
+    );
+  };
+
   const fillCard = async () => {
     setFilling(true);
     try {
@@ -702,6 +486,31 @@ function CardRow({ group }: { group: CardGroup }) {
             />
           </button>
           <button
+            onClick={copyAll}
+            className="text-xs font-bold px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-white transition-colors cursor-pointer border-0"
+          >
+            {copied === "all" ? m("copied") : m("copyAll")}
+          </button>
+          <div className="flex gap-1.5">
+            <button
+              onClick={() =>
+                copy(
+                  [
+                    card.label,
+                    card_data.number,
+                    card_data.expiry,
+                    card_data.cvv,
+                    card_data.name,
+                    country,
+                  ].join("\n"),
+                  "all",
+                )
+              }
+              className="text-xs font-bold px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-white transition-colors cursor-pointer border-0"
+            >
+              {copied === "all" ? m("copied") : m("copyAll")}
+            </button>
+            <button
             onClick={fillCard}
             disabled={filling}
             className="text-xs font-bold px-3 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors disabled:opacity-50 cursor-pointer border-0"
@@ -711,7 +520,8 @@ function CardRow({ group }: { group: CardGroup }) {
             ) : (
               m("autoFill")
             )}
-          </button>
+            </button>
+          </div>
         </div>
 
         {/* Card number */}
@@ -808,7 +618,7 @@ function CardRow({ group }: { group: CardGroup }) {
 }
 
 // ── ErrorTriggerRow ────────────────────────────────────────────
-function ErrorTriggerRow({ item }: { item: (typeof ERROR_TRIGGERS)[0] }) {
+function ErrorTriggerRow({ item }: { item: PaypalErrorTrigger }) {
   const { country } = useContext(CountryCtx);
 
   const genTestCard = useCallback(
@@ -917,8 +727,15 @@ function ErrorTriggerRow({ item }: { item: (typeof ERROR_TRIGGERS)[0] }) {
 }
 
 // ── StripeCardRow ──────────────────────────────────────────────
-function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
-  const { country, bgStripe, cardholderName } = useContext(CountryCtx);
+function StripeCardRow({
+  card,
+  provider = "stripe",
+}: {
+  card: TestScenarioCard;
+  provider?: "paypal" | "stripe";
+}) {
+  const { country, bgPaypal, bgStripe, cardholderName } = useContext(CountryCtx);
+  const cardBackground = provider === "paypal" ? bgPaypal : bgStripe;
   const [card_data] = useState(() => ({
     number: card.number,
     expiry: randomExpiry(),
@@ -945,7 +762,7 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
       if (!tab?.id) throw new Error("no tab");
       await browser.tabs.sendMessage(tab.id, {
         action: "fillCard",
-        card: { ...card_data, label: card.label, type: "stripe", country },
+        card: { ...card_data, label: card.label, type: provider, country },
       });
       setToast(m("filled"));
     } catch {
@@ -960,11 +777,20 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
   const is3ds = card.category === "3ds";
 
   // Stripe gradient theo category
-  const gradient = isDecline
-    ? "from-red-700 to-red-500"
-    : is3ds
-      ? "from-yellow-600 to-orange-500"
-      : "from-[#635bff] to-[#4f46e5]";
+  const gradient =
+    provider === "paypal"
+      ? is3ds
+        ? "from-[#003087] to-[#009cde]"
+        : "from-blue-800 to-blue-600"
+      : isDecline
+        ? "from-red-700 to-red-500"
+        : is3ds
+          ? "from-yellow-600 to-orange-500"
+          : card.category === "radar"
+            ? "from-fuchsia-700 to-purple-600"
+            : card.category === "dispute"
+              ? "from-slate-800 to-slate-600"
+              : "from-[#635bff] to-[#4f46e5]";
 
   // Detect brand từ số thẻ
   const num = card.number;
@@ -986,11 +812,11 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
     <div className="rounded-2xl overflow-hidden shadow-md">
       {/* Card body */}
       <div
-        className={`${bgStripe ? "" : `bg-gradient-to-br ${gradient}`} px-5 py-4`}
+        className={`${cardBackground ? "" : `bg-gradient-to-br ${gradient}`} px-5 py-4`}
         style={
           bgStripe
             ? {
-                backgroundImage: `url(${bgStripe})`,
+                backgroundImage: `url(${cardBackground})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
               }
@@ -1116,15 +942,22 @@ function StripeCardRow({ card }: { card: (typeof STRIPE_CARDS)[0] }) {
   );
 }
 
-function StripePage() {
+function StripePage({ query }: { query: string }) {
   const [activeCategory, setActiveCategory] = useState<StripeCategory>("All");
+  const normalizedQuery = query.trim().toLowerCase();
 
-  const filtered =
-    activeCategory === "All"
-      ? STRIPE_CARDS
-      : STRIPE_CARDS.filter(
-          (c) => c.category === STRIPE_CAT_FILTER[activeCategory],
-        );
+  const filtered = STRIPE_CARDS.filter((card) => {
+    const categoryMatches =
+      activeCategory === "All" ||
+      card.category === STRIPE_CAT_FILTER[activeCategory];
+    const searchMatches =
+      !normalizedQuery ||
+      [card.label, card.number, card.desc, card.brand, card.category]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedQuery);
+    return categoryMatches && searchMatches;
+  });
 
   return (
     <>
@@ -1139,7 +972,11 @@ function StripePage() {
                   ? "bg-red-500 text-white"
                   : cat === "3DS"
                     ? "bg-yellow-500 text-white"
-                    : "bg-[#635bff] text-white"
+                    : cat === "Radar"
+                      ? "bg-fuchsia-600 text-white"
+                      : cat === "Dispute"
+                        ? "bg-slate-700 text-white"
+                        : "bg-[#635bff] text-white"
                 : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
             }`}
           >
@@ -1148,9 +985,15 @@ function StripePage() {
         ))}
       </div>
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
-        {filtered.map((card) => (
-          <StripeCardRow key={card.number} card={card} />
-        ))}
+        {filtered.length > 0 ? (
+          filtered.map((card) => (
+            <StripeCardRow key={card.id} card={card} />
+          ))
+        ) : (
+          <div className="py-10 text-center text-xs text-slate-400">
+            {m("noResults")}
+          </div>
+        )}
       </div>
     </>
   );
@@ -1163,6 +1006,7 @@ type Page = "main" | "settings";
 function App() {
   const [provider, setProvider] = useState<Provider>("paypal");
   const [activeTab, setActiveTab] = useState<Tab>("All");
+  const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState<Page>("main");
   const [country, setCountryState] = useState<string>("US");
   const [bgPaypal, setBgPaypalState] = useState<string>("");
@@ -1207,10 +1051,35 @@ function App() {
     [],
   );
 
-  const filtered =
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+
+  const filtered = (
     activeTab === "All"
       ? CARD_GROUPS
-      : CARD_GROUPS.filter((g) => TAB_FILTER[activeTab].includes(g.type));
+      : CARD_GROUPS.filter((g) => TAB_FILTER[activeTab].includes(g.type))
+  ).filter(
+    (group) =>
+      !normalizedQuery ||
+      [group.label, group.type].join(" ").toLowerCase().includes(normalizedQuery),
+  );
+
+  const filteredErrors = PAYPAL_ERROR_TRIGGERS.filter(
+    (item) =>
+      !normalizedQuery ||
+      [item.name, item.trigger, item.code, item.desc]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedQuery),
+  );
+
+  const filteredPaypal3ds = PAYPAL_3DS_CARDS.filter(
+    (card) =>
+      !normalizedQuery ||
+      [card.label, card.number, card.desc, card.brand]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedQuery),
+  );
 
   return (
     <CountryCtx.Provider
@@ -1295,9 +1164,33 @@ function App() {
               </button>
             </div>
 
+            <div className="bg-white px-3 py-2 border-b border-slate-200">
+              <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 focus-within:ring-2 focus-within:ring-blue-200">
+                <FontAwesomeIcon
+                  icon={faMagnifyingGlass}
+                  className="text-slate-400 text-xs"
+                />
+                <input
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder={m("searchPlaceholder")}
+                  className="min-w-0 flex-1 bg-transparent border-0 outline-none text-xs text-slate-700 placeholder:text-slate-400"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="border-0 bg-transparent text-slate-400 hover:text-slate-700 cursor-pointer text-xs"
+                    title={m("clearSearch")}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* Content */}
             {provider === "stripe" ? (
-              <StripePage />
+              <StripePage query={searchQuery} />
             ) : (
               <>
                 {/* PayPal Tabs */}
@@ -1305,6 +1198,7 @@ function App() {
                   {TABS.map((tab) => {
                     const isActive = activeTab === tab;
                     const isError = tab === "Errors";
+                    const is3ds = tab === "3DS";
                     return (
                       <button
                         key={tab}
@@ -1313,10 +1207,14 @@ function App() {
                           isActive
                             ? isError
                               ? "bg-red-500 text-white"
-                              : "bg-[#003087] text-white"
+                              : is3ds
+                                ? "bg-amber-500 text-white"
+                                : "bg-[#003087] text-white"
                             : isError
                               ? "text-red-400 hover:bg-red-50"
-                              : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                              : is3ds
+                                ? "text-amber-600 hover:bg-amber-50"
+                                : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
                         }`}
                       >
                         {m(TAB_LABEL[tab])}
@@ -1368,14 +1266,38 @@ function App() {
                           </div>
                         </div>
                       </div>
-                      {ERROR_TRIGGERS.map((item) => (
-                        <ErrorTriggerRow key={item.trigger} item={item} />
-                      ))}
+                      {filteredErrors.length > 0 ? (
+                        filteredErrors.map((item) => (
+                          <ErrorTriggerRow key={item.trigger} item={item} />
+                        ))
+                      ) : (
+                        <div className="py-10 text-center text-xs text-slate-400">
+                          {m("noResults")}
+                        </div>
+                      )}
                     </>
-                  ) : (
+                  ) : activeTab === "3DS" ? (
+                    filteredPaypal3ds.length > 0 ? (
+                      filteredPaypal3ds.map((card) => (
+                        <StripeCardRow
+                          key={card.id}
+                          card={card}
+                          provider="paypal"
+                        />
+                      ))
+                    ) : (
+                      <div className="py-10 text-center text-xs text-slate-400">
+                        {m("noResults")}
+                      </div>
+                    )
+                  ) : filtered.length > 0 ? (
                     filtered.map((group) => (
                       <CardRow key={group.type} group={group} />
                     ))
+                  ) : (
+                    <div className="py-10 text-center text-xs text-slate-400">
+                      {m("noResults")}
+                    </div>
                   )}
                 </div>
               </>
