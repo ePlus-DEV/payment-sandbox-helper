@@ -677,7 +677,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@wxt-dev/module-react@npm:^1.1.5":
+"@wxt-dev/module-react@npm:^1.2.2":
   version: 1.2.2
   resolution: "@wxt-dev/module-react@npm:1.2.2"
   dependencies:
@@ -2113,7 +2113,7 @@ __metadata:
     "@tailwindcss/vite": "npm:^4.3.3"
     "@types/react": "npm:^19.3.0"
     "@types/react-dom": "npm:^19.3.0"
-    "@wxt-dev/module-react": "npm:^1.1.5"
+    "@wxt-dev/module-react": "npm:^1.2.2"
     react: "npm:^19.3.0"
     react-dom: "npm:^19.3.0"
     tailwindcss: "npm:^4.3.3"
