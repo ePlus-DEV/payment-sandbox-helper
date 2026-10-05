@@ -247,7 +247,10 @@ function copyText(text: string) {
   void navigator.clipboard.writeText(text).catch(() => legacyCopy(text));
 }
 
+type PaymentProvider = "paypal" | "stripe";
+
 type FillCardPayload = {
+  provider: PaymentProvider;
   number: string;
   expiry: string;
   cvv: string;
@@ -558,6 +561,7 @@ function CardRow({ group }: { group: CardGroup }) {
     setFilling(true);
     try {
       const success = await fillCardInActiveTab({
+        provider: "paypal",
         number: card.number,
         expiry: card.expiry,
         cvv: card.cvv,
@@ -753,6 +757,7 @@ function ErrorTriggerRow({ item }: { item: (typeof ERROR_TRIGGERS)[0] }) {
     setFilling(true);
     try {
       const success = await fillCardInActiveTab({
+        provider: "paypal",
         number: testCard.number,
         expiry: testCard.expiry,
         cvv: testCard.cvv,
@@ -861,6 +866,7 @@ function ScenarioCardRow({
     setFilling(true);
     try {
       const success = await fillCardInActiveTab({
+        provider: scenario.provider,
         number: cardData.number,
         expiry: cardData.expiry,
         cvv: cardData.cvv,
