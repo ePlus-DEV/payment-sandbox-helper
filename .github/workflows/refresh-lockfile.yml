@@ -1,0 +1,45 @@
+name: Refresh lockfile
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    if: github.head_ref == 'chore/wxt-security-refresh'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pull request head
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.x
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Refresh WXT and patched transitive resolutions
+        run: |
+          yarn up -R \
+            wxt \
+            @wxt-dev/module-react \
+            brace-expansion \
+            defu \
+            http-cache-semantics \
+            ip-address
+
+      - name: Upload refreshed dependency files
+        uses: actions/upload-artifact@v7
+        with:
+          name: refreshed-dependencies
+          path: |
+            package.json
+            yarn.lock
+          retention-days: 1
