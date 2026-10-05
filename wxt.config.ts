@@ -16,6 +16,7 @@ export default defineConfig({
       ...(browser === "chrome" ? ["sidePanel" as const] : []),
       "contextMenus",
       "storage",
+      "webNavigation",
     ],
     browser_specific_settings: {
       gecko: {
