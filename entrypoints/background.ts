@@ -8,6 +8,7 @@ import {
 import { cardholderStorage, countryStorage } from "../utils/storage";
 
 interface CurrentCard {
+  provider: "paypal" | "stripe";
   number: string;
   expiry: string;
   cvv: string;
@@ -26,6 +27,7 @@ interface TabInfo {
 }
 
 let currentCard: CurrentCard = {
+  provider: "paypal",
   number: "4012888888881881",
   expiry: randomExpiry(),
   cvv: randomCvv(false),
@@ -152,6 +154,7 @@ async function selectScenario(scenario: PaymentScenario, tabId: number) {
   ]);
 
   currentCard = {
+    provider: scenario.provider,
     number: scenario.number,
     expiry: randomExpiry(),
     cvv: randomCvv(scenario.cvvLen === 4),
@@ -198,6 +201,7 @@ async function handleContextMenuClick(
     tab.id,
     {
       action: "fillField",
+      provider: currentCard.provider,
       field: menuId.slice("fill_".length),
       value,
     },
