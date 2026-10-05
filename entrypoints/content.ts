@@ -27,6 +27,10 @@ export default defineContentScript({
     browser.runtime.onMessage.addListener((message: unknown) => {
       if (!isRecord(message)) return undefined;
 
+      if (message.action === "detectProvider") {
+        return { provider: detectCurrentProvider() };
+      }
+
       if (message.action === "fillCard" && isCardData(message.card)) {
         if (!providerMatchesCurrentFrame(message.card.provider)) {
           return { success: false, filledFields: 0, providerMismatch: true };
