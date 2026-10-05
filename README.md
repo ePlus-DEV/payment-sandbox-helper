@@ -6,7 +6,11 @@ A browser extension for developers to quickly generate and auto-fill test card d
 
 - **PayPal Sandbox cards** — Generate random valid test cards (Visa, Mastercard, Amex, Diners, Maestro, CUP, JCB) with Luhn-valid numbers
 - **PayPal error triggers** — One-click fill for PayPal-specific error codes (CCREJECT-REFUSED, CCREJECT-SF, etc.)
-- **Stripe test cards** — Full list of Stripe test cards categorized by Success, Decline, and 3DS
+- **PayPal 3D Secure scenarios** — Frictionless, stand-in, and step-up authentication test cards
+- **Stripe test cards** — Test cards categorized by Success, Decline, 3DS, Radar, and Disputes
+- **Scenario search** — Search cards, test cases, error codes, and expected outcomes
+- **Copy full card** — Copy number, expiry, CVV, cardholder, and country in one action
+- **Unified context menu** — PayPal and Stripe context-menu scenarios share the same catalog as the side panel
 - **Auto-fill** — Automatically fills card number, expiry, CVV, cardholder name, and country into payment forms
 - **Context menu** — Right-click on any input field to fill card data directly
 - **Customizable settings** — Set default country, cardholder name, and card background images
