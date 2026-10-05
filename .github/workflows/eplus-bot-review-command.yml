@@ -1,0 +1,197 @@
+name: eplus-bot review command
+
+on:
+  issue_comment:
+    types: [created]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  checks: read
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  review:
+    name: Review pull request
+    if: >-
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '@eplus-bot review') &&
+      contains(
+        fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'),
+        github.event.comment.author_association
+      )
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate command
+        run: |
+          NORMALIZED_COMMAND="$(
+            printf '%s\n' "$COMMENT_BODY" \
+              | tr -d '\r' \
+              | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
+          )"
+
+          if [ "$NORMALIZED_COMMAND" != "@eplus-bot review" ]; then
+            echo "::error::Use the exact command: @eplus-bot review"
+            exit 1
+          fi
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+
+      - name: Verify bot identity
+        run: |
+          BOT_LOGIN="$(gh api user --jq '.login')"
+          test "$BOT_LOGIN" = "eplus-bot"
+        env:
+          GH_TOKEN: ${{ secrets.EPLUS_BOT_TOKEN }}
+
+      - name: Acknowledge command
+        run: |
+          gh api \
+            --method POST \
+            "repos/$GITHUB_REPOSITORY/issues/comments/$COMMENT_ID/reactions" \
+            -H "Accept: application/vnd.github+json" \
+            -f content="eyes"
+        env:
+          COMMENT_ID: ${{ github.event.comment.id }}
+          GH_TOKEN: ${{ secrets.EPLUS_BOT_TOKEN }}
+
+      - name: Resolve pull request
+        id: pr
+        run: |
+          PR_DATA="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER")"
+          PR_STATE="$(jq -r '.state' <<<"$PR_DATA")"
+          PR_AUTHOR="$(jq -r '.user.login' <<<"$PR_DATA")"
+          HEAD_SHA="$(jq -r '.head.sha' <<<"$PR_DATA")"
+          IS_DRAFT="$(jq -r '.draft' <<<"$PR_DATA")"
+
+          test "$PR_STATE" = "open"
+
+          if [ "$PR_AUTHOR" = "eplus-bot" ]; then
+            echo "::error::eplus-bot cannot approve its own pull request."
+            exit 1
+          fi
+
+          if [ "$IS_DRAFT" = "true" ]; then
+            echo "::error::Draft pull requests cannot be approved."
+            exit 1
+          fi
+
+          echo "head_sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+        env:
+          PR_NUMBER: ${{ github.event.issue.number }}
+          GH_TOKEN: ${{ secrets.EPLUS_BOT_TOKEN }}
+
+      - name: Wait for current head checks
+        run: |
+          for ATTEMPT in {1..60}; do
+            CURRENT_HEAD="$(
+              gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq '.head.sha'
+            )"
+
+            if [ "$CURRENT_HEAD" != "$EXPECTED_HEAD" ]; then
+              gh pr comment "$PR_NUMBER" \
+                --repo "$GITHUB_REPOSITORY" \
+                --body "⚠️ The pull request changed while checks were running. Run \`@eplus-bot review\` again."
+              exit 1
+            fi
+
+            CHECKS="$(
+              gh pr checks "$PR_NUMBER" \
+                --repo "$GITHUB_REPOSITORY" \
+                --json bucket,name,workflow 2>/dev/null || true
+            )"
+
+            CI_COUNT="$(
+              jq '[.[] | select(.workflow == "CI")] | length' <<<"$CHECKS"
+            )"
+            FAILING_COUNT="$(
+              jq '[.[] | select(
+                .workflow != env.COMMAND_WORKFLOW and
+                .workflow != env.APPROVAL_WORKFLOW and
+                (.bucket == "fail" or .bucket == "cancel")
+              )] | length' <<<"$CHECKS"
+            )"
+            PENDING_COUNT="$(
+              jq '[.[] | select(
+                .workflow != env.COMMAND_WORKFLOW and
+                .workflow != env.APPROVAL_WORKFLOW and
+                .bucket == "pending"
+              )] | length' <<<"$CHECKS"
+            )"
+
+            if [ "$FAILING_COUNT" -gt 0 ]; then
+              jq -r '.[] | select(
+                .workflow != env.COMMAND_WORKFLOW and
+                .workflow != env.APPROVAL_WORKFLOW and
+                (.bucket == "fail" or .bucket == "cancel")
+              ) | "::error::\(.workflow // \"status\"): \(.name) did not pass"' <<<"$CHECKS"
+
+              gh pr comment "$PR_NUMBER" \
+                --repo "$GITHUB_REPOSITORY" \
+                --body "❌ eplus-bot cannot approve commit \`$CURRENT_HEAD\` because one or more checks did not pass."
+              exit 1
+            fi
+
+            if [ "$CI_COUNT" -gt 0 ] && [ "$PENDING_COUNT" -eq 0 ]; then
+              exit 0
+            fi
+
+            echo "Waiting for CI and $PENDING_COUNT pending check(s) (attempt $ATTEMPT/60)."
+            sleep 10
+          done
+
+          gh pr comment "$PR_NUMBER" \
+            --repo "$GITHUB_REPOSITORY" \
+            --body "⌛ eplus-bot timed out while waiting for pull request checks."
+          exit 1
+        env:
+          PR_NUMBER: ${{ github.event.issue.number }}
+          EXPECTED_HEAD: ${{ steps.pr.outputs.head_sha }}
+          COMMAND_WORKFLOW: ${{ github.workflow }}
+          APPROVAL_WORKFLOW: pr-auto-approve
+          GH_TOKEN: ${{ secrets.EPLUS_BOT_TOKEN }}
+
+      - name: Approve current head
+        run: |
+          CURRENT_HEAD="$(
+            gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq '.head.sha'
+          )"
+
+          if [ "$CURRENT_HEAD" != "$EXPECTED_HEAD" ]; then
+            echo "::error::The pull request head changed before approval."
+            exit 1
+          fi
+
+          APPROVED_FOR_HEAD="$(
+            gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/reviews" \
+              --paginate \
+              --jq ".[] | select(
+                .user.login == \"eplus-bot\" and
+                .state == \"APPROVED\" and
+                .commit_id == \"$CURRENT_HEAD\"
+              ) | .id" \
+              | tail -n 1
+          )"
+
+          if [ -z "$APPROVED_FOR_HEAD" ]; then
+            gh api \
+              --method POST \
+              "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/reviews" \
+              -f commit_id="$CURRENT_HEAD" \
+              -f event="APPROVE" \
+              -f body="Approved by @eplus-bot after all checks passed for commit \`$CURRENT_HEAD\`."
+          fi
+
+          gh pr comment "$PR_NUMBER" \
+            --repo "$GITHUB_REPOSITORY" \
+            --body "✅ eplus-bot reviewed and approved commit \`$CURRENT_HEAD\`."
+        env:
+          PR_NUMBER: ${{ github.event.issue.number }}
+          EXPECTED_HEAD: ${{ steps.pr.outputs.head_sha }}
+          GH_TOKEN: ${{ secrets.EPLUS_BOT_TOKEN }}
