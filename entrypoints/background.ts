@@ -1,4 +1,9 @@
-import { generateCardNumber, randomCvv, randomExpiry } from "../utils/cards";
+import { randomCvv, randomExpiry } from "../utils/cards";
+import {
+  PAYPAL_CONTEXT_SCENARIOS,
+  STRIPE_CONTEXT_SCENARIOS,
+  type TestScenarioCard,
+} from "../utils/test-scenarios";
 import { cardholderStorage, countryStorage } from "../utils/storage";
 
 interface CurrentCard {
@@ -19,9 +24,8 @@ interface TabInfo {
   id?: number;
 }
 
-// Keep the latest selected card for the individual context-menu actions.
 let currentCard: CurrentCard = {
-  number: generateCardNumber("visa"),
+  number: "4012888888881881",
   expiry: randomExpiry(),
   cvv: randomCvv(false),
   name: "Test User",
@@ -29,104 +33,66 @@ let currentCard: CurrentCard = {
   country: "US",
 };
 
+const menuScenarios = [...PAYPAL_CONTEXT_SCENARIOS, ...STRIPE_CONTEXT_SCENARIOS];
+const scenarioByMenuId = new Map(
+  menuScenarios.map((scenario) => [`scenario:${scenario.id}`, scenario]),
+);
+
+const CATEGORY_LABEL: Record<TestScenarioCard["category"], string> = {
+  success: "Success",
+  decline: "Decline",
+  "3ds": "3D Secure",
+  radar: "Radar",
+  dispute: "Disputes",
+  error: "Errors",
+};
+
+function createScenarioMenus(
+  provider: "paypal" | "stripe",
+  rootId: string,
+  scenarios: TestScenarioCard[],
+) {
+  const categories = [...new Set(scenarios.map((scenario) => scenario.category))];
+
+  for (const category of categories) {
+    const categoryId = `${rootId}:${category}`;
+    browser.contextMenus.create({
+      id: categoryId,
+      parentId: rootId,
+      title: CATEGORY_LABEL[category],
+      contexts: ["editable"],
+    });
+
+    for (const scenario of scenarios.filter(
+      (item) => item.category === category && item.provider === provider,
+    )) {
+      browser.contextMenus.create({
+        id: `scenario:${scenario.id}`,
+        parentId: categoryId,
+        title: `${scenario.label} – ${scenario.number}`,
+        contexts: ["editable"],
+      });
+    }
+  }
+}
+
 async function buildMenus() {
   await browser.contextMenus.removeAll();
 
-  // PayPal group
   browser.contextMenus.create({
     id: "paypal",
     title: "PayPal Sandbox",
     contexts: ["editable"],
   });
+  createScenarioMenus("paypal", "paypal", PAYPAL_CONTEXT_SCENARIOS);
 
-  const paypalCards = [
-    {
-      id: "pp_visa",
-      label: "Visa – 4012888888881881",
-      number: "4012888888881881",
-      amex: false,
-      type: "visa",
-    },
-    {
-      id: "pp_mc",
-      label: "Mastercard – 2223000048400011",
-      number: "2223000048400011",
-      amex: false,
-      type: "mastercard",
-    },
-    {
-      id: "pp_amex",
-      label: "Amex – 371449635398431",
-      number: "371449635398431",
-      amex: true,
-      type: "amex",
-    },
-  ];
-
-  for (const card of paypalCards) {
-    browser.contextMenus.create({
-      id: card.id,
-      parentId: "paypal",
-      title: card.label,
-      contexts: ["editable"],
-    });
-  }
-
-  // Stripe group
   browser.contextMenus.create({
     id: "stripe",
     title: "Stripe Test",
     contexts: ["editable"],
   });
+  createScenarioMenus("stripe", "stripe", STRIPE_CONTEXT_SCENARIOS);
 
-  const stripeCards = [
-    {
-      id: "st_visa",
-      label: "Visa – 4242424242424242",
-      number: "4242424242424242",
-      amex: false,
-      type: "visa",
-    },
-    {
-      id: "st_mc",
-      label: "Mastercard – 5555555555554444",
-      number: "5555555555554444",
-      amex: false,
-      type: "mastercard",
-    },
-    {
-      id: "st_amex",
-      label: "Amex – 378282246310005",
-      number: "378282246310005",
-      amex: true,
-      type: "amex",
-    },
-    {
-      id: "st_decline",
-      label: "Decline – 4000000000000002",
-      number: "4000000000000002",
-      amex: false,
-      type: "visa",
-    },
-    {
-      id: "st_3ds",
-      label: "3DS – 4000002760003184",
-      number: "4000002760003184",
-      amex: false,
-      type: "visa",
-    },
-  ];
-
-  for (const card of stripeCards) {
-    browser.contextMenus.create({
-      id: card.id,
-      parentId: "stripe",
-      title: card.label,
-      contexts: ["editable"],
-    });
-  }
-
-  // Separator + individual field actions
   browser.contextMenus.create({
     id: "sep",
     type: "separator",
@@ -154,20 +120,6 @@ async function buildMenus() {
   });
 }
 
-const allCards: Record<
-  string,
-  { number: string; amex: boolean; type: string }
-> = {
-  pp_visa: { number: "4012888888881881", amex: false, type: "visa" },
-  pp_mc: { number: "2223000048400011", amex: false, type: "mastercard" },
-  pp_amex: { number: "371449635398431", amex: true, type: "amex" },
-  st_visa: { number: "4242424242424242", amex: false, type: "visa" },
-  st_mc: { number: "5555555555554444", amex: false, type: "mastercard" },
-  st_amex: { number: "378282246310005", amex: true, type: "amex" },
-  st_decline: { number: "4000000000000002", amex: false, type: "visa" },
-  st_3ds: { number: "4000002760003184", amex: false, type: "visa" },
-};
-
 async function sendMessageToTab(
   tabId: number,
   message: unknown,
@@ -184,6 +136,27 @@ async function sendMessageToTab(
   }
 }
 
+async function selectScenario(scenario: TestScenarioCard, tabId: number) {
+  const [defaultName, country] = await Promise.all([
+    cardholderStorage.getValue(),
+    countryStorage.getValue(),
+  ]);
+
+  currentCard = {
+    number: scenario.number,
+    expiry: randomExpiry(),
+    cvv: randomCvv(scenario.cvvLen === 4),
+    name: scenario.nameOverride ?? defaultName,
+    type: scenario.brand,
+    country,
+  };
+
+  await sendMessageToTab(tabId, {
+    action: "fillCard",
+    card: currentCard,
+  });
+}
+
 async function handleContextMenuClick(
   info: ContextMenuClickInfo,
   tab?: TabInfo,
@@ -191,28 +164,10 @@ async function handleContextMenuClick(
   if (tab?.id == null) return;
 
   const menuId = String(info.menuItemId);
-  const selectedCard = allCards[menuId];
+  const scenario = scenarioByMenuId.get(menuId);
 
-  // Select a card, remember it, and fill every matching payment frame.
-  if (selectedCard) {
-    const [name, country] = await Promise.all([
-      cardholderStorage.getValue(),
-      countryStorage.getValue(),
-    ]);
-
-    currentCard = {
-      number: selectedCard.number,
-      expiry: randomExpiry(),
-      cvv: randomCvv(selectedCard.amex),
-      name,
-      type: selectedCard.type,
-      country,
-    };
-
-    await sendMessageToTab(tab.id, {
-      action: "fillCard",
-      card: currentCard,
-    });
+  if (scenario) {
+    await selectScenario(scenario, tab.id);
     return;
   }
 
@@ -230,7 +185,6 @@ async function handleContextMenuClick(
   const value = fieldMap[menuId];
   if (value === undefined) return;
 
-  // Target the exact iframe where the user opened the context menu.
   await sendMessageToTab(
     tab.id,
     {
@@ -250,8 +204,6 @@ export default defineBackground(() => {
       }).sidebarAction.toggle();
     });
   } else {
-    // Let Chrome manage opening the side panel from the toolbar action.
-    // The old enable/disable workaround did not reliably close the panel.
     void browser.sidePanel
       .setPanelBehavior({ openPanelOnActionClick: true })
       .catch(() => undefined);
