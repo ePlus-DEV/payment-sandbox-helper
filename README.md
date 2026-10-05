@@ -102,4 +102,4 @@ For Chrome, Firefox, Edge, Opera, and manual update instructions, see [INSTALL.m
 | Browser | Status |
 |---------|--------|
 | Chrome  | ✅ Manifest V3, `sidePanel` API |
-| Firefox | ✅ Manifest V3, `sidebar_action` API |
+| Firefox | ✅ Manifest V3, `sidebar_action` API · [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/sandbox-pay/) |
