@@ -127,11 +127,19 @@ async function sendMessageToTab(
   frameId?: number,
 ) {
   try {
-    if (frameId === undefined) {
-      await browser.tabs.sendMessage(tabId, message);
-    } else {
+    if (frameId !== undefined) {
       await browser.tabs.sendMessage(tabId, message, { frameId });
+      return;
     }
+
+    const frames = await browser.webNavigation.getAllFrames({ tabId });
+    const frameIds = frames?.map((frame) => frame.frameId) ?? [0];
+
+    await Promise.allSettled(
+      frameIds.map((targetFrameId) =>
+        browser.tabs.sendMessage(tabId, message, { frameId: targetFrameId }),
+      ),
+    );
   } catch {
     // The current page/frame may not have a matching content script.
   }
