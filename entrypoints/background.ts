@@ -147,7 +147,11 @@ async function sendMessageToTab(
   }
 }
 
-async function selectScenario(scenario: PaymentScenario, tabId: number) {
+async function selectScenario(
+  scenario: PaymentScenario,
+  tabId: number,
+  frameId?: number,
+) {
   const [defaultName, country] = await Promise.all([
     cardholderStorage.getValue(),
     countryStorage.getValue(),
@@ -163,10 +167,14 @@ async function selectScenario(scenario: PaymentScenario, tabId: number) {
     country: scenario.country ?? country,
   };
 
-  await sendMessageToTab(tabId, {
-    action: "fillCard",
-    card: currentCard,
-  });
+  await sendMessageToTab(
+    tabId,
+    {
+      action: "fillCard",
+      card: currentCard,
+    },
+    frameId,
+  );
 }
 
 async function handleContextMenuClick(
@@ -179,7 +187,10 @@ async function handleContextMenuClick(
   const scenario = scenarioByMenuId.get(menuId);
 
   if (scenario) {
-    await selectScenario(scenario, tab.id);
+    // Context-menu actions must stay inside the exact frame where the
+    // user opened the menu. Broadcasting to every provider frame can
+    // make parent checkout pages react to the same input/change events.
+    await selectScenario(scenario, tab.id, info.frameId);
     return;
   }
 
