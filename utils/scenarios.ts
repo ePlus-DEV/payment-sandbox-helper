@@ -5,7 +5,8 @@ export type ScenarioCategory =
   | "3ds"
   | "risk"
   | "checks"
-  | "disputes";
+  | "disputes"
+  | "errors";
 
 export interface PaymentScenario {
   id: string;
@@ -17,6 +18,7 @@ export interface PaymentScenario {
   desc: string;
   category: ScenarioCategory;
   country?: string;
+  nameOverride?: string;
 }
 
 export const STRIPE_SCENARIOS: PaymentScenario[] = [
@@ -84,4 +86,29 @@ export const PAYPAL_3DS_SCENARIOS: PaymentScenario[] = [
   { id: "paypal-3ds-stepup-success", provider: "paypal", label: "Step-up · success", number: "4868719166101368", brand: "visa", cvvLen: 3, desc: "liability shift possible · authentication Y", category: "3ds", country: "US" },
   { id: "paypal-3ds-stepup-fail", provider: "paypal", label: "Step-up · failed", number: "4868719181895556", brand: "visa", cvvLen: 3, desc: "no liability shift · authentication N", category: "3ds", country: "US" },
   { id: "paypal-3ds-stepup-unavailable", provider: "paypal", label: "Step-up · unavailable", number: "4868719557718580", brand: "visa", cvvLen: 3, desc: "no liability shift · authentication U", category: "3ds", country: "US" },
+];
+
+
+export const PAYPAL_SUCCESS_SCENARIOS: PaymentScenario[] = [
+  { id: "paypal-success-visa", provider: "paypal", label: "Visa", number: "4012888888881881", brand: "visa", cvvLen: 3, desc: "Successful sandbox payment", category: "success" },
+  { id: "paypal-success-mastercard", provider: "paypal", label: "Mastercard", number: "2223000048400011", brand: "mastercard", cvvLen: 3, desc: "Successful sandbox payment", category: "success" },
+  { id: "paypal-success-amex", provider: "paypal", label: "American Express", number: "371449635398431", brand: "amex", cvvLen: 4, desc: "Successful sandbox payment", category: "success" },
+];
+
+export const PAYPAL_ERROR_SCENARIOS: PaymentScenario[] = [
+  { id: "paypal-error-refused", provider: "paypal", label: "Card refused", number: "4012888888881881", brand: "visa", cvvLen: 3, desc: "0500 · DO_NOT_HONOR", category: "errors", nameOverride: "CCREJECT-REFUSED" },
+  { id: "paypal-error-fraud", provider: "paypal", label: "Fraudulent card", number: "4012888888881881", brand: "visa", cvvLen: 3, desc: "9500 · SUSPECTED_FRAUD", category: "errors", nameOverride: "CCREJECT-SF" },
+  { id: "paypal-error-expired", provider: "paypal", label: "Card expired", number: "4012888888881881", brand: "visa", cvvLen: 3, desc: "5400 · EXPIRED_CARD", category: "errors", nameOverride: "CCREJECT-EC" },
+  { id: "paypal-error-luhn", provider: "paypal", label: "Luhn check fails", number: "4012888888881881", brand: "visa", cvvLen: 3, desc: "5180 · INVALID_OR_RESTRICTED_CARD", category: "errors", nameOverride: "CCREJECT-IRC" },
+  { id: "paypal-error-funds", provider: "paypal", label: "Insufficient funds", number: "4012888888881881", brand: "visa", cvvLen: 3, desc: "5120 · INSUFFICIENT_FUNDS", category: "errors", nameOverride: "CCREJECT-IF" },
+  { id: "paypal-error-lost", provider: "paypal", label: "Card lost/stolen", number: "4012888888881881", brand: "visa", cvvLen: 3, desc: "9520 · LOST_OR_STOLEN", category: "errors", nameOverride: "CCREJECT-LS" },
+  { id: "paypal-error-account", provider: "paypal", label: "Card not valid", number: "4012888888881881", brand: "visa", cvvLen: 3, desc: "1330 · INVALID_ACCOUNT", category: "errors", nameOverride: "CCREJECT-IA" },
+  { id: "paypal-error-declined", provider: "paypal", label: "Card declined", number: "4012888888881881", brand: "visa", cvvLen: 3, desc: "5100 · GENERIC_DECLINE", category: "errors", nameOverride: "CCREJECT-BANK_ERROR" },
+  { id: "paypal-error-cvv", provider: "paypal", label: "CVC check fails", number: "4012888888881881", brand: "visa", cvvLen: 3, desc: "00N7 · CVV2_FAILURE_POSSIBLE_RETRY_WITH_CVV", category: "errors", nameOverride: "CCREJECT-CVV_F" },
+];
+
+export const PAYPAL_CONTEXT_SCENARIOS: PaymentScenario[] = [
+  ...PAYPAL_SUCCESS_SCENARIOS,
+  ...PAYPAL_3DS_SCENARIOS,
+  ...PAYPAL_ERROR_SCENARIOS,
 ];
