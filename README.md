@@ -93,6 +93,10 @@ public/
   img/background/     # Preset card background images
 ```
 
+## Installation
+
+For Chrome, Firefox, Edge, Opera, and manual update instructions, see [INSTALL.md](INSTALL.md).
+
 ## Browser Support
 
 | Browser | Status |
