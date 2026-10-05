@@ -36,14 +36,14 @@ To preserve extension settings when updating manually:
 3. Click **Load Temporary Add-on**.
 4. Select `manifest.json` from the extracted folder.
 
-Temporary Firefox installations are removed when Firefox restarts. For normal use, install the signed version from Firefox Add-ons when available.
+Temporary Firefox installations are removed when Firefox restarts. For normal use, install the signed version from [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/sandbox-pay/).
 
 ## Official stores
 
 - [Chrome Web Store](https://chromewebstore.google.com/detail/alpieoifgmjfafonmafjcmjmallgmpie?utm_source=github)
 - [Microsoft Edge package](https://github.com/ePlus-DEV/payment-sandbox-helper/releases/latest)
 - [Opera package](https://github.com/ePlus-DEV/payment-sandbox-helper/releases/latest)
-- [Firefox package](https://github.com/ePlus-DEV/payment-sandbox-helper/releases/latest)
+- [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/sandbox-pay/)
 
 ## Notes
 
