@@ -263,6 +263,61 @@ type FillResult = {
   filledFields?: number;
 };
 
+type ProviderDetectionResult = {
+  provider?: PaymentProvider | null;
+};
+
+function providerFromFrameUrl(value: string): PaymentProvider | null {
+  try {
+    const host = new URL(value).hostname.toLowerCase();
+    if (host === "stripe.com" || host.endsWith(".stripe.com")) return "stripe";
+    if (host === "paypal.com" || host.endsWith(".paypal.com")) return "paypal";
+  } catch {
+    // Ignore non-standard frame URLs.
+  }
+  return null;
+}
+
+async function detectProviderInActiveTab(): Promise<PaymentProvider | null> {
+  const [tab] = await browser.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
+
+  if (!tab?.id) return null;
+
+  const frames = await browser.webNavigation.getAllFrames({ tabId: tab.id });
+  const frameList = frames ?? [];
+  const detected = new Set<PaymentProvider>();
+
+  for (const frame of frameList) {
+    const fromUrl = providerFromFrameUrl(frame.url);
+    if (fromUrl) detected.add(fromUrl);
+  }
+
+  const responses = await Promise.allSettled(
+    (frameList.length > 0 ? frameList.map((frame) => frame.frameId) : [0]).map(
+      (frameId) =>
+        browser.tabs.sendMessage(
+          tab.id!,
+          { action: "detectProvider" },
+          { frameId },
+        ),
+    ),
+  );
+
+  for (const response of responses) {
+    if (response.status !== "fulfilled") continue;
+    const provider = (response.value as ProviderDetectionResult | undefined)
+      ?.provider;
+    if (provider === "paypal" || provider === "stripe") {
+      detected.add(provider);
+    }
+  }
+
+  return detected.size === 1 ? [...detected][0] : null;
+}
+
 async function fillCardInActiveTab(card: FillCardPayload): Promise<boolean> {
   const [tab] = await browser.tabs.query({
     active: true,
@@ -1202,12 +1257,45 @@ function App() {
   const [cardholderName, setCardholderNameState] =
     useState<string>("Test User");
 
-  // Load from WXT storage on mount
+  // Load preferences and auto-select the provider detected in the active tab.
   useEffect(() => {
     countryStorage.getValue().then(setCountryState);
     cardholderStorage.getValue().then(setCardholderNameState);
     bgPaypalStorage.getValue().then(setBgPaypalState);
     bgStripeStorage.getValue().then(setBgStripeState);
+
+    let detectionSequence = 0;
+
+    const refreshDetectedProvider = async () => {
+      const sequence = ++detectionSequence;
+      const detectedProvider = await detectProviderInActiveTab();
+
+      // Ignore stale async detections after a faster tab/navigation change.
+      if (sequence !== detectionSequence || !detectedProvider) return;
+      setProvider(detectedProvider);
+    };
+
+    void refreshDetectedProvider();
+
+    const handleActivated = () => {
+      void refreshDetectedProvider();
+    };
+    const handleUpdated = (
+      _tabId: number,
+      changeInfo: { status?: string },
+    ) => {
+      if (changeInfo.status === "complete") {
+        void refreshDetectedProvider();
+      }
+    };
+
+    browser.tabs.onActivated.addListener(handleActivated);
+    browser.tabs.onUpdated.addListener(handleUpdated);
+
+    return () => {
+      browser.tabs.onActivated.removeListener(handleActivated);
+      browser.tabs.onUpdated.removeListener(handleUpdated);
+    };
   }, []);
 
   const setCountry = (v: string) => {
