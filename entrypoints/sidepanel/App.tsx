@@ -247,6 +247,50 @@ function copyText(text: string) {
   void navigator.clipboard.writeText(text).catch(() => legacyCopy(text));
 }
 
+type FillCardPayload = {
+  number: string;
+  expiry: string;
+  cvv: string;
+  name: string;
+  country?: string;
+};
+
+type FillResult = {
+  success?: boolean;
+  filledFields?: number;
+};
+
+async function fillCardInActiveTab(card: FillCardPayload): Promise<boolean> {
+  const [tab] = await browser.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
+
+  if (!tab?.id) return false;
+
+  const frames = await browser.webNavigation.getAllFrames({ tabId: tab.id });
+  const frameIds = frames?.map((frame) => frame.frameId) ?? [0];
+
+  const results = await Promise.allSettled(
+    frameIds.map((frameId) =>
+      browser.tabs.sendMessage(
+        tab.id!,
+        {
+          action: "fillCard",
+          card,
+        },
+        { frameId },
+      ),
+    ),
+  );
+
+  return results.some(
+    (result) =>
+      result.status === "fulfilled" &&
+      Boolean((result.value as FillResult | undefined)?.success),
+  );
+}
+
 // ── Settings page ──────────────────────────────────────────────
 function SettingsPage() {
   const {
@@ -513,16 +557,14 @@ function CardRow({ group }: { group: CardGroup }) {
   const fillCard = async () => {
     setFilling(true);
     try {
-      const [tab] = await browser.tabs.query({
-        active: true,
-        currentWindow: true,
+      const success = await fillCardInActiveTab({
+        number: card.number,
+        expiry: card.expiry,
+        cvv: card.cvv,
+        name: card.name,
+        country,
       });
-      if (!tab?.id) throw new Error("no tab");
-      await browser.tabs.sendMessage(tab.id, {
-        action: "fillCard",
-        card: { ...card, label: group.label, type: group.type, country },
-      });
-      setToast(m("filled"));
+      setToast(success ? m("filled") : m("noForm"));
     } catch {
       setToast(m("noForm"));
     } finally {
@@ -710,16 +752,14 @@ function ErrorTriggerRow({ item }: { item: (typeof ERROR_TRIGGERS)[0] }) {
   const fillError = async () => {
     setFilling(true);
     try {
-      const [tab] = await browser.tabs.query({
-        active: true,
-        currentWindow: true,
+      const success = await fillCardInActiveTab({
+        number: testCard.number,
+        expiry: testCard.expiry,
+        cvv: testCard.cvv,
+        name: testCard.name,
+        country,
       });
-      if (!tab?.id) throw new Error("no tab");
-      await browser.tabs.sendMessage(tab.id, {
-        action: "fillCard",
-        card: { ...testCard, country },
-      });
-      setToast(m("filled"));
+      setToast(success ? m("filled") : m("noForm"));
     } catch {
       setToast(m("noForm"));
     } finally {
@@ -820,25 +860,18 @@ function ScenarioCardRow({
   const fillCard = async () => {
     setFilling(true);
     try {
-      const [tab] = await browser.tabs.query({
-        active: true,
-        currentWindow: true,
+      const success = await fillCardInActiveTab({
+        number: cardData.number,
+        expiry: cardData.expiry,
+        cvv: cardData.cvv,
+        name: cardData.name,
+        country:
+          scenario.provider === "paypal" && scenario.country
+            ? scenario.country
+            : country,
       });
-      if (!tab?.id) throw new Error("no tab");
-      await browser.tabs.sendMessage(tab.id, {
-        action: "fillCard",
-        card: {
-          ...cardData,
-          label: scenario.label,
-          type: scenario.brand,
-          country:
-            scenario.provider === "paypal" && scenario.country
-              ? scenario.country
-              : country,
-        },
-      });
-      onUsed?.(scenario.id);
-      setToast(m("filled"));
+      if (success) onUsed?.(scenario.id);
+      setToast(success ? m("filled") : m("noForm"));
     } catch {
       setToast(m("noForm"));
     } finally {
