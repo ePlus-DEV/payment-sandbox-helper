@@ -24,3 +24,8 @@ web-ext.config.ts
 *.njsproj
 *.sln
 *.sw?
+
+# Environment files
+.env
+.env.*
+!.env.example

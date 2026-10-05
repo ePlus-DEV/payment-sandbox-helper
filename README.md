@@ -53,6 +53,29 @@ yarn zip
 yarn zip:firefox
 ```
 
+## Environment
+
+Copy the example file before using local store-submission tooling:
+
+```bash
+cp .env.example .env
+```
+
+The extension itself does not require runtime API credentials for normal local development. The environment file is mainly for browser-store publishing and GitHub automation.
+
+For GitHub Actions, add the corresponding values under **Settings → Secrets and variables → Actions → Repository secrets**:
+
+- `EPLUS_BOT_TOKEN` — token for the `eplus-bot` PR/review automation
+- `CHROME_EXTENSION_ID`
+- `CHROME_CLIENT_ID`
+- `CHROME_CLIENT_SECRET`
+- `CHROME_REFRESH_TOKEN`
+- `FIREFOX_EXTENSION_ID`
+- `FIREFOX_JWT_ISSUER`
+- `FIREFOX_JWT_SECRET`
+
+See `.env.example` for optional WXT submission settings.
+
 ## Project Structure
 
 ```
