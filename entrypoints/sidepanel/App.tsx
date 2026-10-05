@@ -503,6 +503,13 @@ function CardRow({ group }: { group: CardGroup }) {
     setTimeout(() => setCopied(""), 1500);
   };
 
+  const copyAll = () => {
+    copy(
+      [group.label, card.number, card.expiry, card.cvv, card.name, country].join("\n"),
+      "all",
+    );
+  };
+
   const fillCard = async () => {
     setFilling(true);
     try {
@@ -553,6 +560,12 @@ function CardRow({ group }: { group: CardGroup }) {
               className={spinning ? "animate-spin" : ""}
               size="xs"
             />
+          </button>
+          <button
+            onClick={copyAll}
+            className="text-xs font-bold px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-white transition-colors cursor-pointer border-0"
+          >
+            {copied === "all" ? m("copied") : m("copyAll")}
           </button>
           <button
             onClick={fillCard}
@@ -889,6 +902,24 @@ function ScenarioCardRow({
               </button>
             )}
             <button
+              onClick={() =>
+                copy(
+                  [
+                    scenario.label,
+                    cardData.number,
+                    cardData.expiry,
+                    cardData.cvv,
+                    cardData.name,
+                    scenario.country ?? country,
+                  ].join("\n"),
+                  "all",
+                )
+              }
+              className="text-xs font-bold px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-white transition-colors cursor-pointer border-0"
+            >
+              {copied === "all" ? m("copied") : m("copyAll")}
+            </button>
+            <button
               onClick={fillCard}
               disabled={filling}
               className="text-xs font-bold px-3 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors disabled:opacity-50 cursor-pointer border-0"
@@ -1124,6 +1155,7 @@ type Page = "main" | "settings";
 function App() {
   const [provider, setProvider] = useState<Provider>("paypal");
   const [activeTab, setActiveTab] = useState<Tab>("All");
+  const [paypalQuery, setPaypalQuery] = useState("");
   const [page, setPage] = useState<Page>("main");
   const [country, setCountryState] = useState<string>("US");
   const [bgPaypal, setBgPaypalState] = useState<string>("");
@@ -1168,10 +1200,44 @@ function App() {
     [],
   );
 
-  const filtered =
+  const normalizedPaypalQuery = paypalQuery.trim().toLowerCase();
+
+  const filtered = (
     activeTab === "All"
       ? CARD_GROUPS
-      : CARD_GROUPS.filter((g) => TAB_FILTER[activeTab].includes(g.type));
+      : CARD_GROUPS.filter((g) => TAB_FILTER[activeTab].includes(g.type))
+  ).filter(
+    (group) =>
+      !normalizedPaypalQuery ||
+      [group.label, group.type]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedPaypalQuery),
+  );
+
+  const filteredErrors = ERROR_TRIGGERS.filter(
+    (item) =>
+      !normalizedPaypalQuery ||
+      [item.name, item.trigger, item.code, item.desc]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedPaypalQuery),
+  );
+
+  const filteredPaypal3DS = PAYPAL_3DS_SCENARIOS.filter(
+    (scenario) =>
+      !normalizedPaypalQuery ||
+      [
+        scenario.label,
+        scenario.number,
+        scenario.desc,
+        scenario.brand,
+        scenario.country ?? "",
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedPaypalQuery),
+  );
 
   return (
     <CountryCtx.Provider
@@ -1261,6 +1327,21 @@ function App() {
               <StripePage />
             ) : (
               <>
+                <div className="bg-white border-b border-slate-200 px-3 py-2">
+                  <div className="relative">
+                    <FontAwesomeIcon
+                      icon={faMagnifyingGlass}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"
+                    />
+                    <input
+                      value={paypalQuery}
+                      onChange={(event) => setPaypalQuery(event.target.value)}
+                      placeholder={m("scenarioSearch")}
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-8 pr-3 text-xs text-slate-700 outline-none focus:border-[#003087] focus:ring-2 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
+
                 {/* PayPal Tabs */}
                 <div className="flex bg-white border-b border-slate-200 px-2 pt-2 gap-1 overflow-x-auto">
                   {TABS.map((tab) => {
@@ -1329,19 +1410,35 @@ function App() {
                           </div>
                         </div>
                       </div>
-                      {ERROR_TRIGGERS.map((item) => (
-                        <ErrorTriggerRow key={item.trigger} item={item} />
-                      ))}
+                      {filteredErrors.length === 0 ? (
+                        <div className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-xs text-slate-400">
+                          {m("noScenarios")}
+                        </div>
+                      ) : (
+                        filteredErrors.map((item) => (
+                          <ErrorTriggerRow key={item.trigger} item={item} />
+                        ))
+                      )}
                     </>
                   ) : activeTab === "3DS" ? (
                     <>
                       <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-800 mb-2">
                         {m("paypal3DSNote")}
                       </div>
-                      {PAYPAL_3DS_SCENARIOS.map((scenario) => (
-                        <ScenarioCardRow key={scenario.id} scenario={scenario} />
-                      ))}
+                      {filteredPaypal3DS.length === 0 ? (
+                        <div className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-xs text-slate-400">
+                          {m("noScenarios")}
+                        </div>
+                      ) : (
+                        filteredPaypal3DS.map((scenario) => (
+                          <ScenarioCardRow key={scenario.id} scenario={scenario} />
+                        ))
+                      )}
                     </>
+                  ) : filtered.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-xs text-slate-400">
+                      {m("noScenarios")}
+                    </div>
                   ) : (
                     filtered.map((group) => (
                       <CardRow key={group.type} group={group} />
