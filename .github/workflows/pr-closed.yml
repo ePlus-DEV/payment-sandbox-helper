@@ -1,9 +1,13 @@
-name: 🎉 PR closed
+name: PR closed
 
 on:
     pull_request_target:
         types:
             - closed
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
 
 permissions:
     contents: read
@@ -18,7 +22,7 @@ jobs:
             - name: Post Thank You Comment
               uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
               env:
-                  comment: Thanks for helping make **Google Cloud Skills Boost - Helper** better!
+                  comment: Thanks for helping make **Payment Sandbox Helper** better!
               with:
                   script: |
                       github.rest.issues.createComment({
