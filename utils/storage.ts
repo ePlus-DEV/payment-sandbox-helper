@@ -16,3 +16,14 @@ export const bgPaypalStorage = storage.defineItem<string>("local:bgPaypal", {
 export const bgStripeStorage = storage.defineItem<string>("local:bgStripe", {
   fallback: "",
 });
+
+
+export const scenarioFavoritesStorage = storage.defineItem<string[]>(
+  "local:scenarioFavorites",
+  { fallback: [] },
+);
+
+export const scenarioRecentsStorage = storage.defineItem<string[]>(
+  "local:scenarioRecents",
+  { fallback: [] },
+);

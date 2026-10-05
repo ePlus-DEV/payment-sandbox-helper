@@ -27,11 +27,25 @@ export default defineContentScript({
     browser.runtime.onMessage.addListener((message: unknown) => {
       if (!isRecord(message)) return undefined;
 
+      if (message.action === "detectProvider") {
+        return { provider: detectCurrentProvider() };
+      }
+
       if (message.action === "fillCard" && isCardData(message.card)) {
+        if (!providerMatchesCurrentFrame(message.card.provider)) {
+          return { success: false, filledFields: 0, providerMismatch: true };
+        }
         return fillCardForm(message.card);
       }
 
-      if (message.action === "fillField" && typeof message.value === "string") {
+      if (
+        message.action === "fillField" &&
+        typeof message.value === "string" &&
+        isPaymentProvider(message.provider)
+      ) {
+        if (!providerMatchesCurrentFrame(message.provider)) {
+          return { success: false, filledFields: 0, providerMismatch: true };
+        }
         const value =
           message.field === "expiry" && lastFocusedInput
             ? normalizeCombinedExpiry(lastFocusedInput, message.value)
@@ -48,7 +62,10 @@ export default defineContentScript({
 type FillableTextElement = HTMLInputElement | HTMLTextAreaElement;
 type SearchRoot = Document | ShadowRoot;
 
+type PaymentProvider = "paypal" | "stripe";
+
 interface CardData {
+  provider: PaymentProvider;
   number: string;
   expiry: string;
   cvv: string;
@@ -59,22 +76,78 @@ interface CardData {
 interface FillResult {
   success: boolean;
   filledFields: number;
+  providerMismatch?: boolean;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+function isPaymentProvider(value: unknown): value is PaymentProvider {
+  return value === "paypal" || value === "stripe";
+}
+
 function isCardData(value: unknown): value is CardData {
   if (!isRecord(value)) return false;
 
   return (
+    isPaymentProvider(value.provider) &&
     typeof value.number === "string" &&
     typeof value.expiry === "string" &&
     typeof value.cvv === "string" &&
     typeof value.name === "string" &&
     (value.country === undefined || typeof value.country === "string")
   );
+}
+
+
+function providerFromHost(hostname: string): PaymentProvider | null {
+  const host = hostname.toLowerCase().replace(/:\d+$/, "");
+
+  if (host === "stripe.com" || host.endsWith(".stripe.com")) return "stripe";
+  if (host === "paypal.com" || host.endsWith(".paypal.com")) return "paypal";
+
+  return null;
+}
+
+function providerFromUrl(value: string): PaymentProvider | null {
+  if (!value) return null;
+
+  try {
+    return providerFromHost(new URL(value, location.href).hostname);
+  } catch {
+    return null;
+  }
+}
+
+function detectCurrentProvider(): PaymentProvider | null {
+  const directProvider = providerFromHost(location.hostname);
+  if (directProvider) return directProvider;
+
+  const referrerProvider = providerFromUrl(document.referrer);
+  if (referrerProvider) return referrerProvider;
+
+  const providers = new Set<PaymentProvider>();
+
+  for (const iframe of document.querySelectorAll<HTMLIFrameElement>("iframe[src]")) {
+    const provider = providerFromUrl(iframe.src);
+    if (provider) providers.add(provider);
+  }
+
+  if (
+    document.querySelector(
+      '[data-elements-stable-field-name], iframe[name^="__privateStripeFrame"]',
+    )
+  ) {
+    providers.add("stripe");
+  }
+
+  if (providers.size !== 1) return null;
+  return providers.values().next().value ?? null;
+}
+
+function providerMatchesCurrentFrame(provider: PaymentProvider): boolean {
+  return detectCurrentProvider() === provider;
 }
 
 function isFillableTextElement(
