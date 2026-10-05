@@ -315,7 +315,7 @@ async function detectProviderInActiveTab(): Promise<PaymentProvider | null> {
     }
   }
 
-  return detected.size === 1 ? [...detected][0] : null;
+  return detected.size === 1 ? (detected.values().next().value ?? null) : null;
 }
 
 async function fillCardInActiveTab(card: FillCardPayload): Promise<boolean> {
