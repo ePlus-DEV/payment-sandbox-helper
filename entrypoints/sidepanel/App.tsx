@@ -491,26 +491,7 @@ function CardRow({ group }: { group: CardGroup }) {
           >
             {copied === "all" ? m("copied") : m("copyAll")}
           </button>
-          <div className="flex gap-1.5">
-            <button
-              onClick={() =>
-                copy(
-                  [
-                    card.label,
-                    card_data.number,
-                    card_data.expiry,
-                    card_data.cvv,
-                    card_data.name,
-                    country,
-                  ].join("\n"),
-                  "all",
-                )
-              }
-              className="text-xs font-bold px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-white transition-colors cursor-pointer border-0"
-            >
-              {copied === "all" ? m("copied") : m("copyAll")}
-            </button>
-            <button
+          <button
             onClick={fillCard}
             disabled={filling}
             className="text-xs font-bold px-3 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors disabled:opacity-50 cursor-pointer border-0"
@@ -520,8 +501,7 @@ function CardRow({ group }: { group: CardGroup }) {
             ) : (
               m("autoFill")
             )}
-            </button>
-          </div>
+          </button>
         </div>
 
         {/* Card number */}
@@ -762,7 +742,13 @@ function StripeCardRow({
       if (!tab?.id) throw new Error("no tab");
       await browser.tabs.sendMessage(tab.id, {
         action: "fillCard",
-        card: { ...card_data, label: card.label, type: provider, country },
+        card: {
+          ...card_data,
+          label: card.label,
+          type: card.brand,
+          provider,
+          country,
+        },
       });
       setToast(m("filled"));
     } catch {
@@ -814,7 +800,7 @@ function StripeCardRow({
       <div
         className={`${cardBackground ? "" : `bg-gradient-to-br ${gradient}`} px-5 py-4`}
         style={
-          bgStripe
+          cardBackground
             ? {
                 backgroundImage: `url(${cardBackground})`,
                 backgroundSize: "cover",
@@ -836,17 +822,37 @@ function StripeCardRow({
           >
             {card.desc}
           </span>
-          <button
-            onClick={fillCard}
-            disabled={filling}
-            className="text-xs font-bold px-3 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors disabled:opacity-50 cursor-pointer border-0"
-          >
-            {filling ? (
-              <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
-            ) : (
-              m("autoFill")
-            )}
-          </button>
+          <div className="flex gap-1.5">
+            <button
+              onClick={() =>
+                copy(
+                  [
+                    card.label,
+                    card_data.number,
+                    card_data.expiry,
+                    card_data.cvv,
+                    card_data.name,
+                    country,
+                  ].join("\n"),
+                  "all",
+                )
+              }
+              className="text-xs font-bold px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-white transition-colors cursor-pointer border-0"
+            >
+              {copied === "all" ? m("copied") : m("copyAll")}
+            </button>
+            <button
+              onClick={fillCard}
+              disabled={filling}
+              className="text-xs font-bold px-3 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors disabled:opacity-50 cursor-pointer border-0"
+            >
+              {filling ? (
+                <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
+              ) : (
+                m("autoFill")
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Card number */}
